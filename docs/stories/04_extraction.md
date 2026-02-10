@@ -39,10 +39,10 @@ When a manifest specifies `extract_dir`, the archive may contain a top-level dir
 
 ## Acceptance Criteria
 
-- [ ] Zip archives are extracted correctly.
-- [ ] Tar archives (gz, xz, bz2) are extracted correctly.
-- [ ] 7z archives are extracted correctly (using `py7zr`).
-- [ ] `extract_dir` correctly relocates nested content.
-- [ ] Unsupported formats raise a clear error.
-- [ ] Tests use `tmp_path` with small test archives created in fixtures.
-- [ ] `pypeline run` passes.
+- [x] Zip archives are extracted correctly.
+- [x] Tar archives (gz, xz, bz2) are extracted correctly.
+- [x] 7z archives are extracted correctly (using `py7zr`).
+- [x] `extract_dir` correctly relocates nested content.
+- [x] Unsupported formats raise a clear error.
+- [x] Tests use `tmp_path` with small test archives created in fixtures.
+- [x] `pypeline run` passes.
