@@ -21,7 +21,8 @@ class HashMismatchError(Exception):
 
 
 def download_file(url: str, dest: Path) -> Path:
-    """Download the file at *url* to *dest*.
+    """
+    Download the file at *url* to *dest*.
 
     Args:
         url: URL to download from.
@@ -44,7 +45,8 @@ def download_file(url: str, dest: Path) -> Path:
 
 
 def verify_sha256(file_path: Path, expected_hash: str) -> None:
-    """Verify *file_path* matches *expected_hash*.
+    """
+    Verify *file_path* matches *expected_hash*.
 
     Raises:
         HashMismatchError: When the computed hash differs from *expected_hash*.
@@ -56,9 +58,7 @@ def verify_sha256(file_path: Path, expected_hash: str) -> None:
             sha256.update(chunk)
     actual = sha256.hexdigest()
     if actual != expected_hash:
-        raise HashMismatchError(
-            f"SHA256 mismatch for {file_path.name}: expected {expected_hash}, got {actual}"
-        )
+        raise HashMismatchError(f"SHA256 mismatch for {file_path.name}: expected {expected_hash}, got {actual}")
 
 
 def _cache_path_for(url: str, cache_dir: Path) -> Path:
@@ -67,7 +67,8 @@ def _cache_path_for(url: str, cache_dir: Path) -> Path:
 
 
 def get_cached_or_download(url: str, sha256: str, cache_dir: Path) -> Path:
-    """Return a cached copy of the archive, downloading if necessary.
+    """
+    Return a cached copy of the archive, downloading if necessary.
 
     If the cached file exists but has the wrong hash it is deleted and
     re-downloaded.

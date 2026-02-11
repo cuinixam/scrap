@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from poks.bucket import find_manifest, sync_all_buckets, sync_bucket
@@ -48,7 +50,7 @@ def test_sync_bucket_pulls_existing(poks_env: PoksEnv) -> None:
     assert loaded.version == "2.0.0"
 
 
-def test_find_manifest_existing(tmp_path: PoksEnv) -> None:
+def test_find_manifest_existing(tmp_path: Path) -> None:
     bucket_path = tmp_path / "bucket"
     bucket_path.mkdir()
     (bucket_path / "cmake.json").write_text("{}")
@@ -58,11 +60,11 @@ def test_find_manifest_existing(tmp_path: PoksEnv) -> None:
     assert result == bucket_path / "cmake.json"
 
 
-def test_find_manifest_missing(tmp_path: PoksEnv) -> None:
+def test_find_manifest_missing(tmp_path: Path) -> None:
     bucket_path = tmp_path / "bucket"
     bucket_path.mkdir()
 
-    with pytest.raises(FileNotFoundError, match="nonexistent.json"):
+    with pytest.raises(FileNotFoundError, match=r"nonexistent\.json"):
         find_manifest("nonexistent", bucket_path)
 
 

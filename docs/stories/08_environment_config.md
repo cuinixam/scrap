@@ -29,9 +29,9 @@ Create `src/poks/environment.py`:
 
 ## Acceptance Criteria
 
-- [ ] `bin` paths are correctly resolved and added to PATH.
-- [ ] `env` variables have `${dir}` expanded correctly.
-- [ ] `merge_env_updates` concatenates PATH entries.
-- [ ] Conflicting non-PATH env vars produce a warning.
-- [ ] Tests cover manifests with all, some, and no env fields.
-- [ ] `pypeline run` passes.
+- [x] `bin` paths are correctly resolved and added to PATH.
+- [x] `env` variables have `${dir}` expanded correctly.
+- [x] `merge_env_updates` concatenates PATH entries.
+- [x] Conflicting non-PATH env vars produce a warning.
+- [x] Tests cover manifests with all, some, and no env fields.
+- [x] `pypeline run` passes.

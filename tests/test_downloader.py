@@ -32,9 +32,7 @@ def _fake_urlretrieve(dest: Path) -> None:
 def test_download_file_success(tmp_path: Path) -> None:
     dest = tmp_path / "sub" / "archive.tar.gz"
 
-    with patch(
-        "poks.downloader.urlretrieve", side_effect=lambda _url, d: _fake_urlretrieve(d)
-    ):
+    with patch("poks.downloader.urlretrieve", side_effect=lambda _url, d: _fake_urlretrieve(d)):
         result = download_file("https://example.com/archive.tar.gz", dest)
 
     assert result == dest
@@ -45,9 +43,7 @@ def test_download_file_network_error(tmp_path: Path) -> None:
     dest = tmp_path / "archive.tar.gz"
 
     with (
-        patch(
-            "poks.downloader.urlretrieve", side_effect=URLError("connection refused")
-        ),
+        patch("poks.downloader.urlretrieve", side_effect=URLError("connection refused")),
         pytest.raises(DownloadError, match="connection refused"),
     ):
         download_file("https://example.com/archive.tar.gz", dest)
@@ -81,9 +77,7 @@ def test_cached_file_reused(tmp_path: Path) -> None:
     cached_file.write_bytes(SAMPLE_CONTENT)
 
     with patch("poks.downloader.urlretrieve") as mock_dl:
-        result = get_cached_or_download(
-            "https://example.com/archive.tar.gz", SAMPLE_SHA256, cache_dir
-        )
+        result = get_cached_or_download("https://example.com/archive.tar.gz", SAMPLE_SHA256, cache_dir)
 
     assert result == cached_file
     mock_dl.assert_not_called()
@@ -95,12 +89,8 @@ def test_corrupt_cache_redownloaded(tmp_path: Path) -> None:
     cached_file = cache_dir / "archive.tar.gz"
     cached_file.write_bytes(b"corrupt data")
 
-    with patch(
-        "poks.downloader.urlretrieve", side_effect=lambda _url, d: _fake_urlretrieve(d)
-    ):
-        result = get_cached_or_download(
-            "https://example.com/archive.tar.gz", SAMPLE_SHA256, cache_dir
-        )
+    with patch("poks.downloader.urlretrieve", side_effect=lambda _url, d: _fake_urlretrieve(d)):
+        result = get_cached_or_download("https://example.com/archive.tar.gz", SAMPLE_SHA256, cache_dir)
 
     assert result == cached_file
     assert cached_file.read_bytes() == SAMPLE_CONTENT
@@ -109,12 +99,8 @@ def test_corrupt_cache_redownloaded(tmp_path: Path) -> None:
 def test_missing_cache_downloads(tmp_path: Path) -> None:
     cache_dir = tmp_path / "cache"
 
-    with patch(
-        "poks.downloader.urlretrieve", side_effect=lambda _url, d: _fake_urlretrieve(d)
-    ):
-        result = get_cached_or_download(
-            "https://example.com/archive.tar.gz", SAMPLE_SHA256, cache_dir
-        )
+    with patch("poks.downloader.urlretrieve", side_effect=lambda _url, d: _fake_urlretrieve(d)):
+        result = get_cached_or_download("https://example.com/archive.tar.gz", SAMPLE_SHA256, cache_dir)
 
     assert result == cache_dir / "archive.tar.gz"
     assert result.read_bytes() == SAMPLE_CONTENT
