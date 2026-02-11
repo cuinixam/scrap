@@ -31,9 +31,9 @@ Create `src/poks/bucket.py`:
 
 ## Acceptance Criteria
 
-- [ ] `sync_bucket` clones a new bucket.
-- [ ] `sync_bucket` pulls an existing bucket.
-- [ ] `find_manifest` returns the correct path for an existing manifest.
-- [ ] `find_manifest` raises an error for a missing manifest.
-- [ ] Tests mock `subprocess` calls (no real Git operations).
-- [ ] `pypeline run` passes.
+- [x] `sync_bucket` clones a new bucket.
+- [x] `sync_bucket` pulls an existing bucket.
+- [x] `find_manifest` returns the correct path for an existing manifest.
+- [x] `find_manifest` raises an error for a missing manifest.
+- [x] Tests mock `subprocess` calls (no real Git operations).
+- [x] `pypeline run` passes.
