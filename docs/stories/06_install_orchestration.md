@@ -48,12 +48,12 @@ Add a utility to detect the current OS and architecture:
 
 ## Acceptance Criteria
 
-- [ ] Full install flow works end-to-end with all components wired together.
-- [ ] `Poks.install()` accepts both a `Path` and a `PoksConfig` object.
-- [ ] Platform detection maps correctly on all supported OS variants.
-- [ ] Apps already installed are skipped.
-- [ ] Platform-filtered apps are skipped with a log message.
-- [ ] The returned dict contains correct PATH and env entries.
-- [ ] Invalid or missing config files raise descriptive errors.
-- [ ] Integration test using mocked download and Git (no real network calls).
-- [ ] `pypeline run` passes.
+- [x] Full install flow works end-to-end with all components wired together.
+- [x] `Poks.install()` accepts both a `Path` and a `PoksConfig` object.
+- [x] Platform detection maps correctly on all supported OS variants.
+- [x] Apps already installed are skipped.
+- [x] Platform-filtered apps are skipped with a log message.
+- [x] The returned dict contains correct PATH and env entries.
+- [x] Invalid or missing config files raise descriptive errors.
+- [x] Integration test using mocked download and Git (no real network calls).
+- [x] `pypeline run` passes.
