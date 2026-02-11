@@ -113,6 +113,26 @@ def uninstall(
         raise typer.Exit(1)
 
 
+@app.command(name="list", help="List installed apps.")
+@time_it("list")
+def list_apps(
+    root_dir: Annotated[Path, typer.Option("--root", help="Root directory for Poks.")] = DEFAULT_ROOT_DIR,
+) -> None:
+    poks = Poks(root_dir=root_dir)
+    apps = poks.list()
+
+    if not apps:
+        typer.echo("No apps installed.")
+        return
+
+    # Simple table formatting
+    # Header
+    typer.echo(f"{'Name':<20} {'Version':<15} {'Bucket':<15}")
+    typer.echo("-" * 52)
+    for app in apps:
+        typer.echo(f"{app.name:<20} {app.version:<15} {app.bucket:<15}")
+
+
 def main() -> int:
     try:
         setup_logger()

@@ -71,6 +71,8 @@ class PoksApp(PoksJsonMixin):
     bucket: str
     os: list[str] | None = None
     arch: list[str] | None = None
+    dirs: list[str] | None = None
+    env: dict[str, str] | None = None
 
     def is_supported(self, os: str, arch: str) -> bool:
         """

@@ -7,7 +7,7 @@ from pathlib import Path
 from py_app_dev.core.logging import logger
 
 from poks.bucket import find_manifest, sync_all_buckets
-from poks.domain import PoksConfig, PoksManifest
+from poks.domain import PoksApp, PoksConfig, PoksManifest
 from poks.downloader import get_cached_or_download
 from poks.environment import collect_env_updates, merge_env_updates
 from poks.extractor import extract_archive
@@ -63,10 +63,65 @@ class Poks:
             url = resolve_download_url(manifest, archive)
             archive_path = get_cached_or_download(url, archive.sha256, self.cache_dir)
             extract_archive(archive_path, install_dir, manifest.extract_dir)
+
+            # Persist manifest for future reference (e.g. list command)
+            (install_dir / ".manifest.json").write_text(manifest.to_json_string())
+
             logger.info(f"Installed {app.name}@{app.version}")
             env_updates.append(collect_env_updates(manifest, install_dir))
 
         return merge_env_updates(env_updates)
+
+    def list(self) -> list[PoksApp]:
+        """
+        List all installed applications.
+
+        Returns:
+            List of PoksApp objects with populated details (version, dirs, env).
+            Note: 'bucket' field might be generic if not tracked.
+
+        """
+        installed_apps = []
+        if not self.apps_dir.exists():
+            return []
+
+        for app_dir in self.apps_dir.iterdir():
+            if not app_dir.is_dir():
+                continue
+            app_name = app_dir.name
+            for version_dir in app_dir.iterdir():
+                if not version_dir.is_dir():
+                    continue
+                version = version_dir.name
+
+                # Attempt to load manifest from installation dir to get details
+                manifest_path = version_dir / ".manifest.json"
+                dirs: list[str] = []
+                env: dict[str, str] = {}
+                bucket = "unknown"
+
+                if manifest_path.exists():
+                    try:
+                        manifest = PoksManifest.from_json_file(manifest_path)
+                        # Re-calculate env updates to populate dirs/env
+                        # Note: This duplicates logic from install().
+                        # Ideally, we should store the *computed* config, but manifest is a good proxy.
+                        # 'dirs' corresponds to 'bin' in manifest, but relative to install dir.
+                        if manifest.bin:
+                            dirs = [str(version_dir / b) for b in manifest.bin]
+
+                        # env needs to be resolved with ${dir} -> version_dir
+                        if manifest.env:
+                            # Simple variable expansion
+                            for k, v in manifest.env.items():
+                                env[k] = v.replace("${dir}", str(version_dir))
+
+                    except Exception as e:
+                        logger.warning(f"Failed to load manifest for {app_name}@{version}: {e}")
+
+                installed_apps.append(PoksApp(name=app_name, version=version, bucket=bucket, dirs=dirs if dirs else None, env=env if env else None))
+
+        return installed_apps
 
     def uninstall(self, app_name: str | None = None, version: str | None = None, all_apps: bool = False) -> None:
         """

@@ -1,0 +1,37 @@
+{
+  "version": "0.17.4",
+  "description": "Zephyr riscv64 toolchain",
+  "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${version}/toolchain_${os}-${arch}_riscv64-zephyr-elf${ext}",
+  "archives": [
+    {
+      "os": "linux",
+      "arch": "x86_64",
+      "ext": ".tar.xz",
+      "sha256": "45995599378db070e5cc3849f32f84bd214d98844d8edca93e13cd72d2dbc50c"
+    },
+    {
+      "os": "linux",
+      "arch": "aarch64",
+      "ext": ".tar.xz",
+      "sha256": "099af4909e561dca27fa82123f770b59ca87290da44a8ea259bc1075c8e8816c"
+    },
+    {
+      "os": "macos",
+      "arch": "x86_64",
+      "ext": ".tar.xz",
+      "sha256": "2aeb6f8a9f118c1927f9da549ddef03a8679eb26df87c7457f938b475b9b7217"
+    },
+    {
+      "os": "macos",
+      "arch": "aarch64",
+      "ext": ".tar.xz",
+      "sha256": "dacd44301b368acefc4982a077e93c0f62bf98b40f21d7ec4d31661fcc0823d5"
+    },
+    {
+      "os": "windows",
+      "arch": "x86_64",
+      "ext": ".7z",
+      "sha256": "83c744e11aa1fb7628cd9123398c31a3744fcaf14fca761a6b4edce20694c92b"
+    }
+  ]
+}
