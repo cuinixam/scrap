@@ -1,6 +1,6 @@
 [project]
 name = "poks"
-version = "0.0.0"
+version = "0.1.0"
 description = "A lightweight archive downloader for pre-build binary dependencies."
 readme = "README.md"
 license = "MIT"
