@@ -66,9 +66,9 @@ A composite fixture (`poks_env` or similar) that ties everything together:
 
 ## Acceptance Criteria
 
-- [ ] A bare Git repo can be created with manifest files and cloned by `git clone`.
-- [ ] Test archives (tar.gz and zip) can be generated programmatically with correct SHA256 hashes.
-- [ ] The `poks_env` fixture provides a fully wired `Poks` instance pointing at the temporary directory.
-- [ ] At least one integration test demonstrates the full flow: create bucket → add manifest → create archive → `poks.install()` → verify files extracted.
-- [ ] All fixture helpers are usable from any test file via `conftest.py`.
-- [ ] `pypeline run` passes.
+- [x] A bare Git repo can be created with manifest files and cloned by `git clone`.
+- [x] Test archives (tar.gz and zip) can be generated programmatically with correct SHA256 hashes.
+- [x] The `poks_env` fixture provides a fully wired `Poks` instance pointing at the temporary directory.
+- [x] At least one integration test demonstrates the full flow: create bucket → add manifest → create archive → `poks.install()` → verify files extracted.
+- [x] All fixture helpers are usable from any test file via `conftest.py`.
+- [x] `pypeline run` passes.

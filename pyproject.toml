@@ -47,6 +47,7 @@ dev = [
   "pypeline-runner>=1,<2",
   "pre-commit>=4,<5",
   "ruff>=0,<1",
+  "gitpython>=3,<4",
 ]
 
 [tool.ruff]

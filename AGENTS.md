@@ -87,6 +87,7 @@ The GitHub Actions workflow (`.github/workflows/ci.yml`) runs:
 - Testability: pure functions where possible; pass dependencies, avoid globals/singletons.
 - Tests: use `pytest`; keep the tests to a minimum; use parametrized tests when possible; do not add useless comments; the tests shall be self-explanatory.
 - Pytest fixtures: use them to avoid code duplication; use `conftest.py` for shared fixtures. Use `tmp_path` for file system operations.
+- **Never suppress linter/type-checker warnings** by adding ignore rules to `pyproject.toml` or `# noqa` / `# type: ignore` comments. Always fix the underlying code instead.
 
 ## Definition of Done
 
