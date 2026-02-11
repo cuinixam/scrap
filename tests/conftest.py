@@ -9,7 +9,7 @@ import pytest
 
 from poks.domain import PoksApp, PoksBucket, PoksConfig, PoksManifest
 from poks.poks import Poks
-from tests.helpers import create_archive, create_bare_bucket
+from tests.helpers import create_archive, update_test_bucket_repo
 
 
 @dataclass
@@ -29,10 +29,10 @@ class PoksEnv:
         """Commit a manifest JSON file into the test bucket repository."""
         filename = f"{name}.json"
         self._manifests[filename] = manifest.to_json_string()
-        # Rebuild the bare repo with all accumulated manifests
+        # Update the persistent repo with all accumulated manifests
         bucket_base = self.root_dir / "bucket-src"
         bucket_base.mkdir(parents=True, exist_ok=True)
-        self.bucket_url = create_bare_bucket(bucket_base, self._manifests)
+        self.bucket_url = update_test_bucket_repo(bucket_base, self._manifests)
 
     def make_archive(
         self,
@@ -71,7 +71,7 @@ def poks_env(tmp_path: Path) -> PoksEnv:
     # Create an initial empty bucket repo
     bucket_base = root_dir / "bucket-src"
     bucket_base.mkdir()
-    bucket_url = create_bare_bucket(bucket_base, {})
+    bucket_url = update_test_bucket_repo(bucket_base, {})
 
     poks = Poks(root_dir=root_dir)
 

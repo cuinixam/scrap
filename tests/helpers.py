@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import shutil
 import tarfile
 import zipfile
 from io import BytesIO
@@ -40,42 +39,33 @@ def create_archive(
     return archive_path, sha256
 
 
-def create_bare_bucket(base_dir: Path, manifests: dict[str, str]) -> str:
+def update_test_bucket_repo(repo_dir: Path, manifests: dict[str, str]) -> str:
     """
-    Create a bare Git repo with manifest JSON files and return its ``file://`` URL.
+    Update (or create) a non-bare Git repo with manifest JSON files.
 
     Args:
-        base_dir: Directory under which the bare repo and a temporary clone are created.
+        repo_dir: Directory for the bucket repository.
         manifests: Mapping of filename (e.g. ``"my-tool.json"``) → JSON string content.
 
     Returns:
-        A ``file://`` URL pointing to the bare repository.
+        A ``file://`` URL pointing to the repository.
 
     """
-    bare_dir = base_dir / "bucket.git"
-    clone_dir = base_dir / "bucket-clone"
-
-    # Clean up from previous calls (e.g. add_manifest rebuilds the repo)
-    if bare_dir.exists():
-        shutil.rmtree(bare_dir)
-    if clone_dir.exists():
-        shutil.rmtree(clone_dir)
-
-    Repo.init(bare_dir, bare=True)
-    repo = Repo.clone_from(str(bare_dir), str(clone_dir))
+    if not (repo_dir / ".git").exists():
+        Repo.init(repo_dir)
 
     for name, content in manifests.items():
-        (clone_dir / name).write_text(content)
+        (repo_dir / name).write_text(content)
 
     # Ensure there is always something to commit
     if not manifests:
-        (clone_dir / ".gitkeep").write_text("")
+        (repo_dir / ".gitkeep").write_text("")
 
-    repo.index.add([str(clone_dir / name) for name in (manifests or {".gitkeep": ""})])
-    repo.index.commit("Add manifests")
-    repo.remote("origin").push()
+    repo = Repo(repo_dir)
+    repo.index.add([str(repo_dir / name) for name in (manifests or {".gitkeep": ""})])
+    repo.index.commit("Update manifests")
 
-    return bare_dir.as_uri()
+    return repo_dir.as_uri()
 
 
 # ---------------------------------------------------------------------------

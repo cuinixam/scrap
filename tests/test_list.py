@@ -42,7 +42,8 @@ def test_list_api_returns_installed_apps(poks_env: PoksEnv, tmp_path: Path) -> N
 
     # Check details
     assert poks_app.dirs == [str(install_dir / "bin")]
-    assert poks_app.env == {"MY_VAR": str(install_dir / "data")}
+    assert poks_app.env is not None
+    assert Path(poks_app.env["MY_VAR"]) == install_dir / "data"
 
 
 def test_cli_list_command(poks_env: PoksEnv) -> None:

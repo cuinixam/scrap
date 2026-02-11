@@ -30,6 +30,7 @@ def test_install_from_config(poks_env: PoksEnv) -> None:
         archives=[
             PoksArchive(os="linux", arch="x86_64", ext=".tar.gz", sha256=sha256),
             PoksArchive(os="macos", arch="aarch64", ext=".tar.gz", sha256=sha256),
+            PoksArchive(os="windows", arch="x86_64", ext=".tar.gz", sha256=sha256),
         ],
     )
     poks_env.add_manifest("test-tool", manifest)
@@ -49,6 +50,7 @@ def test_install_single_app_searches_all_buckets(poks_env: PoksEnv) -> None:
         archives=[
             PoksArchive(os="linux", arch="x86_64", ext=".tar.gz", sha256=sha256),
             PoksArchive(os="macos", arch="aarch64", ext=".tar.gz", sha256=sha256),
+            PoksArchive(os="windows", arch="x86_64", ext=".tar.gz", sha256=sha256),
         ],
     )
     poks_env.add_manifest("my-app", manifest)
@@ -68,6 +70,7 @@ def test_install_single_app_with_specific_bucket(poks_env: PoksEnv) -> None:
         archives=[
             PoksArchive(os="linux", arch="x86_64", ext=".tar.gz", sha256=sha256),
             PoksArchive(os="macos", arch="aarch64", ext=".tar.gz", sha256=sha256),
+            PoksArchive(os="windows", arch="x86_64", ext=".tar.gz", sha256=sha256),
         ],
     )
     poks_env.add_manifest("specific-app", manifest)
@@ -87,6 +90,7 @@ def test_install_single_app_with_bucket_url(poks_env: PoksEnv) -> None:
         archives=[
             PoksArchive(os="linux", arch="x86_64", ext=".tar.gz", sha256=sha256),
             PoksArchive(os="macos", arch="aarch64", ext=".tar.gz", sha256=sha256),
+            PoksArchive(os="windows", arch="x86_64", ext=".tar.gz", sha256=sha256),
         ],
     )
     poks_env.add_manifest("url-app", manifest)

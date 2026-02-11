@@ -14,7 +14,8 @@ def sync_bucket(bucket: PoksBucket, buckets_dir: Path) -> Path:
     if local_path.exists():
         logger.info(f"Pulling latest for bucket '{bucket.name}'")
         repo = Repo(local_path)
-        repo.remotes.origin.pull()
+        repo.remotes.origin.fetch()
+        repo.head.reset(repo.active_branch.tracking_branch(), index=True, working_tree=True)
     else:
         logger.info(f"Cloning bucket '{bucket.name}' from {bucket.url}")
         Repo.clone_from(bucket.url, str(local_path))
