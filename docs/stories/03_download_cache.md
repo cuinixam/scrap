@@ -33,9 +33,9 @@ The cache filename should be deterministic based on the URL (e.g., URL basename 
 
 ## Acceptance Criteria
 
-- [ ] Files are downloaded correctly (test with a small fixture or mock).
-- [ ] SHA256 mismatch raises a descriptive error.
-- [ ] Cached files are reused when the hash matches.
-- [ ] Corrupt cached files are re-downloaded.
-- [ ] Tests use `tmp_path` and do not make real network calls (mock `urllib`).
-- [ ] `pypeline run` passes.
+- [x] Files are downloaded correctly (test with a small fixture or mock).
+- [x] SHA256 mismatch raises a descriptive error.
+- [x] Cached files are reused when the hash matches.
+- [x] Corrupt cached files are re-downloaded.
+- [x] Tests use `tmp_path` and do not make real network calls (mock `urllib`).
+- [x] `pypeline run` passes.

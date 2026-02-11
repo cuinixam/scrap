@@ -5,6 +5,7 @@ from __future__ import annotations
 from git import Repo
 
 from poks.domain import PoksArchive, PoksConfig, PoksManifest
+from poks.downloader import get_cached_or_download
 from poks.extractor import extract_archive
 from tests.conftest import PoksEnv
 
@@ -55,3 +56,26 @@ def test_zip_archive_with_config(poks_env: PoksEnv) -> None:
     dest = poks_env.apps_dir / "zip-tool" / "2.0.0"
     extract_archive(archive_path, dest)
     assert (dest / "data.txt").read_text() == "zip content"
+
+
+def test_download_verify_cache_flow(poks_env: PoksEnv) -> None:
+    archive_path, sha256 = poks_env.make_archive({"hello.txt": "world"}, fmt="tar.gz")
+    url = archive_path.as_uri()
+
+    # First call: downloads and caches
+    cached = get_cached_or_download(url, sha256, poks_env.cache_dir)
+    assert cached.exists()
+    assert cached.parent == poks_env.cache_dir
+
+    original_mtime = cached.stat().st_mtime
+
+    # Second call: reuses the cached file (no re-download)
+    cached_again = get_cached_or_download(url, sha256, poks_env.cache_dir)
+    assert cached_again == cached
+    assert cached_again.stat().st_mtime == original_mtime
+
+    # Corrupt the cache, next call should re-download
+    cached.write_bytes(b"corrupt")
+    redownloaded = get_cached_or_download(url, sha256, poks_env.cache_dir)
+    assert redownloaded == cached
+    assert redownloaded.read_bytes() == archive_path.read_bytes()
