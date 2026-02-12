@@ -1,6 +1,6 @@
 import pytest
 
-from poks.domain import PoksArchive, PoksManifest
+from poks.domain import PoksAppVersion, PoksArchive
 from poks.resolver import expand_variables, resolve_archive, resolve_download_url
 
 
@@ -19,7 +19,7 @@ def test_expand_variables(template, variables, expected):
     assert expand_variables(template, variables) == expected
 
 
-MANIFEST = PoksManifest(
+VERSION = PoksAppVersion(
     version="0.16.5-1",
     url="https://example.com/sdk-${version}_${os}-${arch}${ext}",
     archives=[
@@ -39,31 +39,31 @@ MANIFEST = PoksManifest(
     ],
 )
 def test_resolve_archive(target_os, target_arch, expected_sha):
-    archive = resolve_archive(MANIFEST, target_os, target_arch)
+    archive = resolve_archive(VERSION, target_os, target_arch)
     assert archive.sha256 == expected_sha
 
 
 def test_resolve_archive_unsupported():
     with pytest.raises(ValueError, match="No archive for os='linux', arch='aarch64'"):
-        resolve_archive(MANIFEST, "linux", "aarch64")
+        resolve_archive(VERSION, "linux", "aarch64")
 
 
 def test_resolve_download_url_uses_archive_url():
-    archive = resolve_archive(MANIFEST, "linux", "x86_64")
-    url = resolve_download_url(MANIFEST, archive)
+    archive = resolve_archive(VERSION, "linux", "x86_64")
+    url = resolve_download_url(VERSION, archive)
     assert url == "https://mirror.example.com/sdk-linux.tar.xz"
 
 
 def test_resolve_download_url_uses_manifest_template():
-    archive = resolve_archive(MANIFEST, "windows", "x86_64")
-    url = resolve_download_url(MANIFEST, archive)
+    archive = resolve_archive(VERSION, "windows", "x86_64")
+    url = resolve_download_url(VERSION, archive)
     assert url == "https://example.com/sdk-0.16.5-1_windows-x86_64.7z"
 
 
 def test_resolve_download_url_no_url():
-    manifest = PoksManifest(
+    version = PoksAppVersion(
         version="1.0",
         archives=[PoksArchive(os="linux", arch="x86_64", sha256="aaa")],
     )
     with pytest.raises(ValueError, match="No URL"):
-        resolve_download_url(manifest, manifest.archives[0])
+        resolve_download_url(version, version.archives[0])

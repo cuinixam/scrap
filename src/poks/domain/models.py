@@ -40,18 +40,28 @@ class PoksArchive(PoksJsonMixin):
 
 
 @dataclass
-class PoksManifest(PoksJsonMixin):
-    """Application manifest describing versions, archives, and install config."""
+class PoksAppVersion(PoksJsonMixin):
+    """Specific version details for an application."""
 
     version: str
     archives: list[PoksArchive]
-    description: str | None = None
-    homepage: str | None = None
-    license: str | None = None
-    url: str | None = None
     extract_dir: str | None = None
     bin: list[str] | None = None
     env: dict[str, str] | None = None
+    license: str | None = None
+    yanked: str | None = None
+    url: str | None = None
+
+
+@dataclass
+class PoksManifest(PoksJsonMixin):
+    """Application manifest describing versions and metadata."""
+
+    description: str
+    versions: list[PoksAppVersion]
+    schema_version: str = "1.0.0"
+    license: str | None = None
+    homepage: str | None = None
 
 
 @dataclass

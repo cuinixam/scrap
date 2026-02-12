@@ -6,7 +6,7 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from poks.domain import PoksManifest
+from poks.domain import PoksAppVersion, PoksManifest
 from poks.main import app
 from tests.conftest import PoksEnv
 
@@ -23,7 +23,7 @@ def test_list_api_returns_installed_apps(poks_env: PoksEnv, tmp_path: Path) -> N
     install_dir.mkdir(parents=True)
 
     # Write a manifest to the install dir
-    manifest = PoksManifest(version=version, archives=[], bin=["bin"], env={"MY_VAR": "${dir}/data"})
+    manifest = PoksManifest(description="Test App", versions=[PoksAppVersion(version=version, archives=[], bin=["bin"], env={"MY_VAR": "${dir}/data"})])
     (install_dir / ".manifest.json").write_text(manifest.to_json_string())
 
     # Create bin dir
@@ -55,7 +55,7 @@ def test_cli_list_command(poks_env: PoksEnv) -> None:
     install_dir.mkdir(parents=True)
 
     # Minimal manifest
-    manifest = PoksManifest(version=version, archives=[])
+    manifest = PoksManifest(description="CLI App", versions=[PoksAppVersion(version=version, archives=[])])
     (install_dir / ".manifest.json").write_text(manifest.to_json_string())
 
     # 2. Run CLI command

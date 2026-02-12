@@ -5,23 +5,32 @@ import pytest
 from poks.domain import PoksApp, PoksBucket, PoksConfig, PoksManifest
 
 SAMPLE_MANIFEST = {
-    "version": "0.16.5-1",
     "description": "Zephyr SDK Bundle",
     "homepage": "https://github.com/zephyrproject-rtos/sdk-ng",
     "license": "Apache-2.0",
-    "url": "https://example.com/sdk-${version}_${os}-${arch}${ext}",
-    "archives": [
-        {"os": "windows", "arch": "x86_64", "ext": ".7z", "sha256": "abc123"},
-        {"os": "linux", "arch": "x86_64", "sha256": "def456", "url": "https://mirror.example.com/sdk-linux.tar.xz"},
+    "versions": [
+        {
+            "version": "0.16.5-1",
+            "url": "https://example.com/sdk-${version}_${os}-${arch}${ext}",
+            "archives": [
+                {"os": "windows", "arch": "x86_64", "ext": ".7z", "sha256": "abc123"},
+                {"os": "linux", "arch": "x86_64", "sha256": "def456", "url": "https://mirror.example.com/sdk-linux.tar.xz"},
+            ],
+            "extract_dir": "zephyr-sdk-0.16.5-1",
+            "bin": ["bin"],
+            "env": {"ZEPHYR_SDK_INSTALL_DIR": "${dir}"},
+        }
     ],
-    "extract_dir": "zephyr-sdk-0.16.5-1",
-    "bin": ["bin"],
-    "env": {"ZEPHYR_SDK_INSTALL_DIR": "${dir}"},
 }
 
 MINIMAL_MANIFEST = {
-    "version": "1.0.0",
-    "archives": [{"os": "linux", "arch": "x86_64", "sha256": "aaa"}],
+    "description": "Minimal App",
+    "versions": [
+        {
+            "version": "1.0.0",
+            "archives": [{"os": "linux", "arch": "x86_64", "sha256": "aaa"}],
+        }
+    ],
 }
 
 SAMPLE_CONFIG = {
@@ -42,25 +51,29 @@ class TestPoksManifest:
         path.write_text(json.dumps(SAMPLE_MANIFEST))
         manifest = PoksManifest.from_json_file(path)
 
-        assert manifest.version == "0.16.5-1"
         assert manifest.description == "Zephyr SDK Bundle"
         assert manifest.license == "Apache-2.0"
-        assert len(manifest.archives) == 2
-        assert manifest.archives[0].os == "windows"
-        assert manifest.archives[1].url == "https://mirror.example.com/sdk-linux.tar.xz"
-        assert manifest.bin == ["bin"]
-        assert manifest.env == {"ZEPHYR_SDK_INSTALL_DIR": "${dir}"}
+        assert len(manifest.versions) == 1
+
+        version = manifest.versions[0]
+        assert version.version == "0.16.5-1"
+        assert len(version.archives) == 2
+        assert version.archives[0].os == "windows"
+        assert version.archives[1].url == "https://mirror.example.com/sdk-linux.tar.xz"
+        assert version.bin == ["bin"]
+        assert version.env == {"ZEPHYR_SDK_INSTALL_DIR": "${dir}"}
 
     def test_from_json_file_minimal(self, tmp_path):
         path = tmp_path / "manifest.json"
         path.write_text(json.dumps(MINIMAL_MANIFEST))
         manifest = PoksManifest.from_json_file(path)
 
-        assert manifest.version == "1.0.0"
-        assert manifest.description is None
-        assert manifest.url is None
-        assert manifest.bin is None
-        assert manifest.env is None
+        assert manifest.description == "Minimal App"
+        assert len(manifest.versions) == 1
+        assert manifest.versions[0].version == "1.0.0"
+        assert manifest.versions[0].url is None
+        assert manifest.versions[0].bin is None
+        assert manifest.versions[0].env is None
 
     def test_round_trip(self, tmp_path):
         path = tmp_path / "manifest.json"
@@ -82,9 +95,10 @@ class TestPoksManifest:
         manifest.to_json_file(out_path)
         raw = json.loads(out_path.read_text())
 
-        assert "description" not in raw
+        # description is required now
         assert "homepage" not in raw
-        assert "bin" not in raw
+        # bin is in versions
+        assert "bin" not in raw["versions"][0]
 
 
 class TestPoksConfig:

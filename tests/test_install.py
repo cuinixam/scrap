@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
-from poks.domain import PoksApp, PoksArchive, PoksBucket, PoksConfig, PoksManifest
+from poks.domain import PoksApp, PoksAppVersion, PoksArchive, PoksBucket, PoksConfig, PoksManifest
 from poks.poks import Poks
 from tests.helpers import create_archive
 
@@ -51,12 +51,17 @@ def _make_manifest(
     archive_path, sha256 = create_archive(archives_dir, archive_files, fmt=fmt, top_dir=archive_name)
     ext = f".{fmt}"
     return PoksManifest(
-        version=version,
-        url=archive_path.as_uri(),
-        archives=[PoksArchive(os=target_os, arch=target_arch, ext=ext, sha256=sha256)],
-        extract_dir=archive_name,
-        bin=bin_dirs,
-        env=env_vars,
+        description=f"Test manifest for {archive_name}",
+        versions=[
+            PoksAppVersion(
+                version=version,
+                url=archive_path.as_uri(),
+                archives=[PoksArchive(os=target_os, arch=target_arch, ext=ext, sha256=sha256)],
+                extract_dir=archive_name,
+                bin=bin_dirs,
+                env=env_vars,
+            )
+        ],
     )
 
 

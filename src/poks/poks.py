@@ -13,7 +13,7 @@ from poks.bucket import (
     sync_all_buckets,
     sync_bucket,
 )
-from poks.domain import PoksApp, PoksBucket, PoksConfig, PoksManifest
+from poks.domain import PoksApp, PoksAppVersion, PoksBucket, PoksConfig, PoksManifest
 from poks.downloader import get_cached_or_download
 from poks.environment import collect_env_updates, merge_env_updates
 from poks.extractor import extract_archive
@@ -96,24 +96,38 @@ class Poks:
             if not app.is_supported(current_os, current_arch):
                 logger.info(f"Skipping {app.name}: not supported on {current_os}/{current_arch}")
                 continue
+
+            manifest_path = find_manifest(app.name, bucket_paths[app.bucket])
+            manifest = PoksManifest.from_json_file(manifest_path)
+
+            app_version: PoksAppVersion | None = None
+            for v in manifest.versions:
+                if v.version == app.version:
+                    app_version = v
+                    break
+
+            if not app_version:
+                raise ValueError(f"Version {app.version} not found for app {app.name} in manifest")
+
+            if app_version.yanked:
+                raise ValueError(f"Version {app.version} of {app.name} is yanked: {app_version.yanked}")
+
             install_dir = self.apps_dir / app.name / app.version
             if install_dir.exists():
                 logger.info(f"Skipping {app.name}@{app.version}: already installed")
-                manifest = PoksManifest.from_json_file(find_manifest(app.name, bucket_paths[app.bucket]))
-                env_updates.append(collect_env_updates(manifest, install_dir))
+                env_updates.append(collect_env_updates(app_version, install_dir))
                 continue
-            manifest_path = find_manifest(app.name, bucket_paths[app.bucket])
-            manifest = PoksManifest.from_json_file(manifest_path)
-            archive = resolve_archive(manifest, current_os, current_arch)
-            url = resolve_download_url(manifest, archive)
+
+            archive = resolve_archive(app_version, current_os, current_arch)
+            url = resolve_download_url(app_version, archive)
             archive_path = get_cached_or_download(url, archive.sha256, self.cache_dir)
-            extract_archive(archive_path, install_dir, manifest.extract_dir)
+            extract_archive(archive_path, install_dir, app_version.extract_dir)
 
             # Persist manifest for future reference (e.g. list command)
             (install_dir / ".manifest.json").write_text(manifest.to_json_string())
 
             logger.info(f"Installed {app.name}@{app.version}")
-            env_updates.append(collect_env_updates(manifest, install_dir))
+            env_updates.append(collect_env_updates(app_version, install_dir))
 
         return merge_env_updates(env_updates)
 
@@ -148,18 +162,23 @@ class Poks:
                 if manifest_path.exists():
                     try:
                         manifest = PoksManifest.from_json_file(manifest_path)
-                        # Re-calculate env updates to populate dirs/env
-                        # Note: This duplicates logic from install().
-                        # Ideally, we should store the *computed* config, but manifest is a good proxy.
-                        # 'dirs' corresponds to 'bin' in manifest, but relative to install dir.
-                        if manifest.bin:
-                            dirs = [str(version_dir / b) for b in manifest.bin]
+                        app_version: PoksAppVersion | None = None
+                        for v in manifest.versions:
+                            if v.version == version:
+                                app_version = v
+                                break
 
-                        # env needs to be resolved with ${dir} -> version_dir
-                        if manifest.env:
-                            # Simple variable expansion
-                            for k, v in manifest.env.items():
-                                env[k] = v.replace("${dir}", str(version_dir))
+                        if app_version:
+                            if app_version.bin:
+                                dirs = [str(version_dir / b) for b in app_version.bin]
+
+                            # env needs to be resolved with ${dir} -> version_dir
+                            if app_version.env:
+                                # Simple variable expansion
+                                for k, v in app_version.env.items():
+                                    env[k] = v.replace("${dir}", str(version_dir))
+                        else:
+                            logger.warning(f"Version {version} not found in stored manifest for {app_name}")
 
                     except Exception as e:
                         logger.warning(f"Failed to load manifest for {app_name}@{version}: {e}")

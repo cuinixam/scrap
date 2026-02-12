@@ -38,40 +38,60 @@ A standalone Python application (`poks`) that:
 
 #### 1. Manifests
 
-A JSON file describing an application. It supports multiple archives for different platforms and a generic URL in case no archive URL is specified.
+A JSON file describing an application. It supports multiple versions, each with archives for different platforms and a generic URL in case no archive URL is specified.
 
 **Example `zephyr-sdk.json`**:
 
 ```json
 {
-    "version": "0.16.5-1",
     "description": "Zephyr SDK Bundle",
     "license": "Apache-2.0",
-    "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${version}/zephyr-sdk-${version}_${os}-${arch}${ext}",
-    "archives": [
+    "versions": [
         {
-            "os": "windows",
-            "arch": "x86_64",
-            "ext": ".7z",
-            "sha256": "..."
+            "version": "0.16.5-1",
+            "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${version}/zephyr-sdk-${version}_${os}-${arch}${ext}",
+            "archives": [
+                {
+                    "os": "windows",
+                    "arch": "x86_64",
+                    "ext": ".7z",
+                    "sha256": "..."
+                },
+                {
+                    "os": "linux",
+                    "arch": "x86_64",
+                    "ext": ".tar.xz",
+                    "sha256": "..."
+                },
+                {
+                    "os": "macos",
+                    "arch": "aarch64",
+                    "ext": ".tar.xz",
+                    "sha256": "..."
+                }
+            ],
+            "extract_dir": "zephyr-sdk-0.16.5-1",
+            "env": {
+                "ZEPHYR_SDK_INSTALL_DIR": "${dir}"
+            }
         },
         {
-            "os": "linux",
-            "arch": "x86_64",
-            "url": "https://custom-mirror.com/zephyr-sdk-linux.tar.xz",
-            "sha256": "..."
-        },
-        {
-            "os": "macos",
-            "arch": "aarch64",
-            "ext": ".tar.xz",
-            "sha256": "..."
+            "version": "0.16.4",
+            "url": "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${version}/zephyr-sdk-${version}_${os}-${arch}${ext}",
+            "archives": [
+                {
+                    "os": "linux",
+                    "arch": "x86_64",
+                    "ext": ".tar.xz",
+                    "sha256": "..."
+                }
+            ],
+            "extract_dir": "zephyr-sdk-0.16.4",
+            "env": {
+                "ZEPHYR_SDK_INSTALL_DIR": "${dir}"
+            }
         }
-    ],
-    "extract_dir": "zephyr-sdk-0.16.5-1",
-    "env": {
-        "ZEPHYR_SDK_INSTALL_DIR": "${dir}"
-    }
+    ]
 }
 ```
 
@@ -156,7 +176,8 @@ To install tools, the user defines a configuration file listing the *buckets* (w
     - Parse `poks.json`.
     - Fetch/Update buckets.
     - Find manifest for each app in the buckets (e.g., `buckets/main/cmake.json`).
-2. **Download**: Fetch archive defined in the manifest for the current platform.
+    - Select the requested version from the manifest's `versions` list.
+2. **Download**: Fetch archive defined in the version entry for the current platform.
 3. **Verify**: Check SHA256 hash.
 4. **Extract**: Unpack to `apps/<app>/<version>`.
 5. **Configure**:
@@ -230,24 +251,23 @@ class PoksArchive:
     url: Optional[str] = None
 
 @dataclass
-class PoksManifest:
+class PoksAppVersion:
     version: str
-    description: Optional[str] = None
-    homepage: Optional[str] = None
-    license: Optional[str] = None
+    archives: list[PoksArchive]
+    extract_dir: str | None = None
+    bin: list[str] | None = None
+    env: dict[str, str] | None = None
+    license: str | None = None
+    yanked: str | None = None  # Reason string if yanked
+    url: str | None = None # Generic URL template for this version
 
-    # Generic URL template (optional if all archives specify url)
-    url: Optional[str] = None
-
-    # List of supported archives
-    archives: List[PoksArchive]
-
-    # Installation details
-    extract_dir: Optional[str] = None
-
-    # Post-install configuration
-    bin: Optional[List[str]] = None  # Subdirectories containing executables (added to PATH)
-    env: Optional[Dict[str, str]] = None  # Environment variables to set (supports ${dir})
+@dataclass
+class PoksManifest:
+    description: str
+    versions: list[PoksAppVersion]
+    schema_version: str = "1.0.0"
+    license: str | None = None
+    homepage: str | None = None
 ```
 
 ### Archive Support

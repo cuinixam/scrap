@@ -28,7 +28,7 @@ def test_zephyr_lifecycle(poks_env: PoksEnv, capsys: pytest.CaptureFixture[str])
     """
     manifest_path = Path(__file__).parent / "data" / "riscv64-zephyr-elf.json"
     manifest = PoksManifest.from_json_file(manifest_path)
-    version = manifest.version
+    version = manifest.versions[0].version
 
     app_name = "riscv64-zephyr-elf"
 

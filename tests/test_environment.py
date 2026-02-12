@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from poks.domain import PoksArchive, PoksManifest
+from poks.domain import PoksAppVersion, PoksArchive
 from poks.environment import collect_env_updates, merge_env_updates
 
 DUMMY_ARCHIVE = [PoksArchive(os="linux", arch="x86_64", sha256="abc")]
@@ -29,9 +29,9 @@ def test_collect_env_updates(
     expected_keys: set[str],
 ) -> None:
     install_dir = Path("/apps/tool/1.0")
-    manifest = PoksManifest(version="1.0", archives=DUMMY_ARCHIVE, bin=bin_dirs, env=env_vars)
+    version = PoksAppVersion(version="1.0", archives=DUMMY_ARCHIVE, bin=bin_dirs, env=env_vars)
 
-    result = collect_env_updates(manifest, install_dir)
+    result = collect_env_updates(version, install_dir)
 
     assert set(result) == expected_keys
     if bin_dirs:

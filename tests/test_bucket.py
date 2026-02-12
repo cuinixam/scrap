@@ -7,14 +7,19 @@ from pathlib import Path
 import pytest
 
 from poks.bucket import find_manifest, sync_all_buckets, sync_bucket
-from poks.domain import PoksArchive, PoksBucket, PoksManifest
+from poks.domain import PoksAppVersion, PoksArchive, PoksBucket, PoksManifest
 from tests.conftest import PoksEnv
 
 
 def test_sync_bucket_clones_new(poks_env: PoksEnv) -> None:
     manifest = PoksManifest(
-        version="1.0.0",
-        archives=[PoksArchive(os="linux", arch="x86_64", sha256="abc123")],
+        description="Tool A",
+        versions=[
+            PoksAppVersion(
+                version="1.0.0",
+                archives=[PoksArchive(os="linux", arch="x86_64", sha256="abc123")],
+            )
+        ],
     )
     poks_env.add_manifest("tool-a", manifest)
     bucket = PoksBucket(name="main", url=poks_env.bucket_url)
@@ -27,8 +32,13 @@ def test_sync_bucket_clones_new(poks_env: PoksEnv) -> None:
 
 def test_sync_bucket_pulls_existing(poks_env: PoksEnv) -> None:
     manifest_v1 = PoksManifest(
-        version="1.0.0",
-        archives=[PoksArchive(os="linux", arch="x86_64", sha256="abc123")],
+        description="Tool A",
+        versions=[
+            PoksAppVersion(
+                version="1.0.0",
+                archives=[PoksArchive(os="linux", arch="x86_64", sha256="abc123")],
+            )
+        ],
     )
     poks_env.add_manifest("tool-a", manifest_v1)
     bucket = PoksBucket(name="main", url=poks_env.bucket_url)
@@ -37,8 +47,13 @@ def test_sync_bucket_pulls_existing(poks_env: PoksEnv) -> None:
 
     # Add a second manifest and re-sync
     manifest_v2 = PoksManifest(
-        version="2.0.0",
-        archives=[PoksArchive(os="linux", arch="x86_64", sha256="def456")],
+        description="Tool B",
+        versions=[
+            PoksAppVersion(
+                version="2.0.0",
+                archives=[PoksArchive(os="linux", arch="x86_64", sha256="def456")],
+            )
+        ],
     )
     poks_env.add_manifest("tool-b", manifest_v2)
 
@@ -47,7 +62,7 @@ def test_sync_bucket_pulls_existing(poks_env: PoksEnv) -> None:
     assert (local_path / "tool-a.json").exists()
     assert (local_path / "tool-b.json").exists()
     loaded = PoksManifest.from_json_file(local_path / "tool-b.json")
-    assert loaded.version == "2.0.0"
+    assert loaded.versions[0].version == "2.0.0"
 
 
 def test_find_manifest_existing(tmp_path: Path) -> None:
@@ -72,8 +87,13 @@ def test_sync_all_buckets(poks_env: PoksEnv) -> None:
     poks_env.add_manifest(
         "tool-x",
         PoksManifest(
-            version="1.0.0",
-            archives=[PoksArchive(os="linux", arch="x86_64", sha256="aaa")],
+            description="Tool X",
+            versions=[
+                PoksAppVersion(
+                    version="1.0.0",
+                    archives=[PoksArchive(os="linux", arch="x86_64", sha256="aaa")],
+                )
+            ],
         ),
     )
 

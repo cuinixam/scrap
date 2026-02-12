@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from git import Repo
 
-from poks.domain import PoksArchive, PoksConfig, PoksManifest
+from poks.domain import PoksAppVersion, PoksArchive, PoksConfig, PoksManifest
 from poks.downloader import get_cached_or_download
 from poks.extractor import extract_archive
 from tests.conftest import PoksEnv
@@ -16,9 +16,14 @@ def test_full_flow_create_bucket_add_manifest_extract(poks_env: PoksEnv) -> None
     archive_path, sha256 = poks_env.make_archive(archive_files, fmt="tar.gz")
 
     manifest = PoksManifest(
-        version="1.0.0",
-        url=archive_path.as_uri(),
-        archives=[PoksArchive(os="linux", arch="x86_64", ext=".tar.gz", sha256=sha256)],
+        description="My Tool",
+        versions=[
+            PoksAppVersion(
+                version="1.0.0",
+                url=archive_path.as_uri(),
+                archives=[PoksArchive(os="linux", arch="x86_64", ext=".tar.gz", sha256=sha256)],
+            )
+        ],
     )
     poks_env.add_manifest("my-tool", manifest)
 
@@ -28,8 +33,8 @@ def test_full_flow_create_bucket_add_manifest_extract(poks_env: PoksEnv) -> None
     manifest_file = clone_dir / "my-tool.json"
     assert manifest_file.exists()
     loaded = PoksManifest.from_json_file(manifest_file)
-    assert loaded.version == "1.0.0"
-    assert loaded.archives[0].sha256 == sha256
+    assert loaded.versions[0].version == "1.0.0"
+    assert loaded.versions[0].archives[0].sha256 == sha256
 
     # Extract the archive and verify files on disk
     dest = poks_env.apps_dir / "my-tool" / "1.0.0"
@@ -42,9 +47,14 @@ def test_zip_archive_with_config(poks_env: PoksEnv) -> None:
     archive_path, sha256 = poks_env.make_archive({"data.txt": "zip content"}, fmt="zip")
 
     manifest = PoksManifest(
-        version="2.0.0",
-        url=archive_path.as_uri(),
-        archives=[PoksArchive(os="macos", arch="aarch64", ext=".zip", sha256=sha256)],
+        description="Zip Tool",
+        versions=[
+            PoksAppVersion(
+                version="2.0.0",
+                url=archive_path.as_uri(),
+                archives=[PoksArchive(os="macos", arch="aarch64", ext=".zip", sha256=sha256)],
+            )
+        ],
     )
     poks_env.add_manifest("zip-tool", manifest)
 

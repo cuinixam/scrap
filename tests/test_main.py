@@ -4,7 +4,7 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from poks.domain import PoksArchive, PoksBucket, PoksConfig, PoksManifest
+from poks.domain import PoksAppVersion, PoksArchive, PoksBucket, PoksConfig, PoksManifest
 from poks.main import app
 from tests.conftest import PoksEnv
 
@@ -25,12 +25,17 @@ def test_version() -> None:
 def test_install_from_config(poks_env: PoksEnv) -> None:
     archive_path, sha256 = poks_env.make_archive({"bin/tool": "#!/bin/sh\\necho test"}, fmt="tar.gz")
     manifest = PoksManifest(
-        version="1.0.0",
-        url=archive_path.as_uri(),
-        archives=[
-            PoksArchive(os="linux", arch="x86_64", ext=".tar.gz", sha256=sha256),
-            PoksArchive(os="macos", arch="aarch64", ext=".tar.gz", sha256=sha256),
-            PoksArchive(os="windows", arch="x86_64", ext=".tar.gz", sha256=sha256),
+        description="Test Tool",
+        versions=[
+            PoksAppVersion(
+                version="1.0.0",
+                url=archive_path.as_uri(),
+                archives=[
+                    PoksArchive(os="linux", arch="x86_64", ext=".tar.gz", sha256=sha256),
+                    PoksArchive(os="macos", arch="aarch64", ext=".tar.gz", sha256=sha256),
+                    PoksArchive(os="windows", arch="x86_64", ext=".tar.gz", sha256=sha256),
+                ],
+            )
         ],
     )
     poks_env.add_manifest("test-tool", manifest)
@@ -45,12 +50,17 @@ def test_install_from_config(poks_env: PoksEnv) -> None:
 def test_install_single_app_searches_all_buckets(poks_env: PoksEnv) -> None:
     archive_path, sha256 = poks_env.make_archive({"data.txt": "content"}, fmt="tar.gz")
     manifest = PoksManifest(
-        version="2.0.0",
-        url=archive_path.as_uri(),
-        archives=[
-            PoksArchive(os="linux", arch="x86_64", ext=".tar.gz", sha256=sha256),
-            PoksArchive(os="macos", arch="aarch64", ext=".tar.gz", sha256=sha256),
-            PoksArchive(os="windows", arch="x86_64", ext=".tar.gz", sha256=sha256),
+        description="My App",
+        versions=[
+            PoksAppVersion(
+                version="2.0.0",
+                url=archive_path.as_uri(),
+                archives=[
+                    PoksArchive(os="linux", arch="x86_64", ext=".tar.gz", sha256=sha256),
+                    PoksArchive(os="macos", arch="aarch64", ext=".tar.gz", sha256=sha256),
+                    PoksArchive(os="windows", arch="x86_64", ext=".tar.gz", sha256=sha256),
+                ],
+            )
         ],
     )
     poks_env.add_manifest("my-app", manifest)
@@ -65,12 +75,17 @@ def test_install_single_app_searches_all_buckets(poks_env: PoksEnv) -> None:
 def test_install_single_app_with_specific_bucket(poks_env: PoksEnv) -> None:
     archive_path, sha256 = poks_env.make_archive({"file.txt": "data"}, fmt="tar.gz")
     manifest = PoksManifest(
-        version="3.0.0",
-        url=archive_path.as_uri(),
-        archives=[
-            PoksArchive(os="linux", arch="x86_64", ext=".tar.gz", sha256=sha256),
-            PoksArchive(os="macos", arch="aarch64", ext=".tar.gz", sha256=sha256),
-            PoksArchive(os="windows", arch="x86_64", ext=".tar.gz", sha256=sha256),
+        description="Specific App",
+        versions=[
+            PoksAppVersion(
+                version="3.0.0",
+                url=archive_path.as_uri(),
+                archives=[
+                    PoksArchive(os="linux", arch="x86_64", ext=".tar.gz", sha256=sha256),
+                    PoksArchive(os="macos", arch="aarch64", ext=".tar.gz", sha256=sha256),
+                    PoksArchive(os="windows", arch="x86_64", ext=".tar.gz", sha256=sha256),
+                ],
+            )
         ],
     )
     poks_env.add_manifest("specific-app", manifest)
@@ -85,12 +100,17 @@ def test_install_single_app_with_specific_bucket(poks_env: PoksEnv) -> None:
 def test_install_single_app_with_bucket_url(poks_env: PoksEnv) -> None:
     archive_path, sha256 = poks_env.make_archive({"readme.md": "# Test"}, fmt="tar.gz")
     manifest = PoksManifest(
-        version="4.0.0",
-        url=archive_path.as_uri(),
-        archives=[
-            PoksArchive(os="linux", arch="x86_64", ext=".tar.gz", sha256=sha256),
-            PoksArchive(os="macos", arch="aarch64", ext=".tar.gz", sha256=sha256),
-            PoksArchive(os="windows", arch="x86_64", ext=".tar.gz", sha256=sha256),
+        description="Url App",
+        versions=[
+            PoksAppVersion(
+                version="4.0.0",
+                url=archive_path.as_uri(),
+                archives=[
+                    PoksArchive(os="linux", arch="x86_64", ext=".tar.gz", sha256=sha256),
+                    PoksArchive(os="macos", arch="aarch64", ext=".tar.gz", sha256=sha256),
+                    PoksArchive(os="windows", arch="x86_64", ext=".tar.gz", sha256=sha256),
+                ],
+            )
         ],
     )
     poks_env.add_manifest("url-app", manifest)
