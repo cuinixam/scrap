@@ -38,8 +38,11 @@
 
 A lightweight, cross-platform archive downloader for pre-built binary dependencies. Inspired by [Scoop](https://scoop.sh/), Poks provides a uniform way to install and manage developer tools using simple JSON manifests.
 
+While Poks includes a CLI, its **main purpose is to be used programmatically** to manage dependencies in your Python projects and automation scripts.
+
 ## Features
 
+- **Programmatic API**: First-class Python support for integrating into your tools
 - **Cross-Platform**: Works on Windows, Linux, and macOS
 - **No Admin Rights**: Installs tools in user space
 - **Deterministic**: Pin exact versions in manifests for reproducible builds
@@ -47,7 +50,43 @@ A lightweight, cross-platform archive downloader for pre-built binary dependenci
 
 ## Installation
 
-Install via pipx(or your favorite package manager):
+Install via pip (or your favorite package manager):
+
+```bash
+pip install poks
+```
+
+## Programmatic Usage
+
+Poks is designed to be easily integrated into your Python scripts.
+
+### Quick Start
+
+```python
+from pathlib import Path
+from poks.poks import Poks
+
+# Initialize Poks with a root directory for apps/cache
+poks = Poks(root_dir=Path("./.tools"))
+
+# Install a specific application
+# (Automatically searches configured buckets)
+poks.install_app("cmake@3.28.1")
+
+# Install from a configuration file (poks.json)
+poks.install(Path("poks.json"))
+
+# Uninstall
+poks.uninstall(app_name="cmake", version="3.28.1")
+```
+
+## CLI Usage
+
+You can also use Poks from the command line.
+
+### Installation (CLI)
+
+Install via pipx:
 
 ```bash
 pipx install poks
@@ -81,7 +120,7 @@ Install the defined tools:
 poks install -c poks.json
 ```
 
-## CLI Commands
+## CLI Reference
 
 ```bash
 # Install tools from config file
@@ -104,22 +143,41 @@ poks uninstall --all
 
 For detailed specifications and manifest format, see [docs/specs.md](docs/specs.md).
 
-## Development
+## Contributing
 
-This project uses [pypeline](https://github.com/cuinixam/pypeline) for build automation.
+We welcome contributions! Please see our development guidelines below.
 
-```bash
-# Run full pipeline (lint + tests)
-pypeline run
+### Setup and Development
 
-# Run only linting
-pypeline run --step PreCommit
+This project uses [pypeline](https://github.com/cuinixam/pypeline) for build automation and `uv` for dependency management.
 
-# Run tests with specific Python version
-pypeline run --step CreateVEnv --step PyTest --single --input python_version=3.13
-```
+1. **Install Prerequisites**:
+    Ensure you have Python 3.10+ and `uv` installed.
+    pypeline will automatically use `uv` to create virtual environments.
 
-For AI agents and contributors, see [AGENTS.md](AGENTS.md) for development guidelines.
+2. **Install Pypeline**:
+
+    ```bash
+    uv tool install pypeline-runner
+    ```
+
+3. **Run the Pipeline**:
+    The pipeline handles environment setup, linting, and testing.
+
+    ```bash
+    # Run full pipeline (lint + tests)
+    pypeline run
+    
+    # Run only linting (pre-commit hooks)
+    pypeline run --step PreCommit
+    
+    # Run tests with specific Python version
+    pypeline run --step CreateVEnv --step PyTest --single --input python_version=3.13
+    ```
+
+### AI Agents
+
+For AI agents contributing to this project, please explicitly read and follow [AGENTS.md](AGENTS.md) for detailed instructions on workflows, coding standards, and verification steps.
 
 ## Credits
 
