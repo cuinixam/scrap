@@ -114,7 +114,7 @@ def list_apps(
     root_dir: Annotated[Path, typer.Option("--root", help="Root directory for Poks.")] = DEFAULT_ROOT_DIR,
 ) -> None:
     poks = Poks(root_dir=root_dir)
-    apps = poks.list()
+    apps = poks.list_installed()
 
     if not apps:
         typer.echo("No apps installed.")

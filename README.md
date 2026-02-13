@@ -167,10 +167,10 @@ This project uses [pypeline](https://github.com/cuinixam/pypeline) for build aut
     ```bash
     # Run full pipeline (lint + tests)
     pypeline run
-    
+
     # Run only linting (pre-commit hooks)
     pypeline run --step PreCommit
-    
+
     # Run tests with specific Python version
     pypeline run --step CreateVEnv --step PyTest --single --input python_version=3.13
     ```

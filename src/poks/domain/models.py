@@ -68,8 +68,56 @@ class PoksManifest(PoksJsonMixin):
 class PoksBucket(PoksJsonMixin):
     """A bucket source pointing to a Git repository of manifests."""
 
-    name: str
     url: str
+    name: str | None = None
+    id: str | None = None
+
+
+@dataclass
+class PoksBucketRegistry(PoksJsonMixin):
+    """Registry of known buckets."""
+
+    buckets: list[PoksBucket] = field(default_factory=list)
+
+    def get_by_name(self, name: str) -> PoksBucket | None:
+        """Find a bucket by its name."""
+        for bucket in self.buckets:
+            if bucket.name == name:
+                return bucket
+        return None
+
+    def get_by_url(self, url: str) -> PoksBucket | None:
+        """Find a bucket by its URL."""
+        for bucket in self.buckets:
+            if bucket.url == url:
+                return bucket
+        return None
+
+    def get_by_id(self, bucket_id: str) -> PoksBucket | None:
+        """Find a bucket by its ID."""
+        for bucket in self.buckets:
+            if bucket.id == bucket_id:
+                return bucket
+        return None
+
+    def add_or_update(self, bucket: PoksBucket) -> None:
+        """Add a bucket or update it if it exists (by ID)."""
+        existing = self.get_by_id(bucket.id) if bucket.id else None
+
+        # If not found by ID, check by URL to be safe, though ID should be hash of URL
+        if not existing:
+            existing = self.get_by_url(bucket.url)
+
+        if existing:
+            existing.name = bucket.name or existing.name
+            existing.url = bucket.url
+            existing.id = bucket.id or existing.id
+        else:
+            self.buckets.append(bucket)
+
+    def remove(self, bucket_id: str) -> None:
+        """Remove a bucket by ID."""
+        self.buckets = [b for b in self.buckets if b.id != bucket_id]
 
 
 @dataclass
@@ -94,6 +142,14 @@ class PoksApp(PoksJsonMixin):
         os_ok = self.os is None or os in self.os
         arch_ok = self.arch is None or arch in self.arch
         return os_ok and arch_ok
+
+
+@dataclass
+class PoksAppEnv(PoksJsonMixin):
+    """Resolved environment and directory paths for an installed application."""
+
+    dirs: list[str] | None = None
+    env: dict[str, str] | None = None
 
 
 @dataclass

@@ -44,6 +44,12 @@ def test_zephyr_lifecycle(poks_env: PoksEnv, capsys: pytest.CaptureFixture[str])
     poks_env.poks.install(install_config)
     print("Download and installation complete.")
 
+    # EP-002: Verify registry creation
+    registry_path = poks_env.buckets_dir / "buckets.json"
+    assert registry_path.exists(), "buckets.json should be created after install"
+    registry_content = registry_path.read_text()
+    assert '"name": "test"' in registry_content or f'"url": "{poks_env.bucket_url}"' in registry_content
+
     install_dir = poks_env.apps_dir / app_name / version
     assert install_dir.exists(), f"Install directory {install_dir} does not exist"
 
@@ -67,15 +73,15 @@ def test_zephyr_lifecycle(poks_env: PoksEnv, capsys: pytest.CaptureFixture[str])
 
     # 4. List command
     # Check that it finds the app with the proper information
-    apps = poks_env.poks.list()
+    apps = poks_env.poks.list_installed()
     assert len(apps) == 1
     found_app = apps[0]
     assert found_app.name == app_name
     assert found_app.version == version
     # Since we installed from a config defining "test" bucket (via create_config),
-    # but Poks.list() might not resolve the bucket name if not persisted,
+    # but poks.list_installed() might not resolve the bucket name if not persisted,
     # let's check what we expect.
-    # Poks.list() implementation tries to resolve bucket but defaults to "unknown" if not tracked perfectly
+    # poks.list_installed() implementation tries to resolve bucket but defaults to "unknown" if not tracked perfectly
     # or "test" if we updated it.
     # In test_list.py it was "unknown". Let's see if our install persists enough info.
     # The current implementation of list() initializes bucket="unknown".
@@ -86,7 +92,7 @@ def test_zephyr_lifecycle(poks_env: PoksEnv, capsys: pytest.CaptureFixture[str])
 
     # Check there are no apps when listed
     assert not install_dir.exists(), "App directory should be removed after uninstall"
-    apps_after_uninstall = poks_env.poks.list()
+    apps_after_uninstall = poks_env.poks.list_installed()
     assert len(apps_after_uninstall) == 0, "List should be empty after uninstall"
 
     # 6. Reinstall (using cache)
@@ -113,6 +119,6 @@ def test_zephyr_lifecycle(poks_env: PoksEnv, capsys: pytest.CaptureFixture[str])
     print(f"Reinstall duration: {duration:.2f}s")
 
     # List it and shall be there
-    apps_reinstalled = poks_env.poks.list()
+    apps_reinstalled = poks_env.poks.list_installed()
     assert len(apps_reinstalled) == 1
     assert apps_reinstalled[0].name == app_name

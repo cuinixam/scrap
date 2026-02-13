@@ -14,7 +14,7 @@ runner = CliRunner()
 
 
 def test_list_api_returns_installed_apps(poks_env: PoksEnv, tmp_path: Path) -> None:
-    """Test that Poks.list() returns installed apps with details."""
+    """Test that poks.list_installed() returns installed apps with details."""
     # 1. Setup: Install a fake app
     # We manually create the structure to simulate installation
     app_name = "test-app"
@@ -30,7 +30,7 @@ def test_list_api_returns_installed_apps(poks_env: PoksEnv, tmp_path: Path) -> N
     (install_dir / "bin").mkdir()
 
     # 2. Call list()
-    apps = poks_env.poks.list()
+    apps = poks_env.poks.list_installed()
 
     # 3. Verify
     assert len(apps) == 1
