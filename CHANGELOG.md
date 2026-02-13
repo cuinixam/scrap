@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.2.0 (2026-02-13)
+
+### Features
+
+- Add buckets registry ([`e95f461`](https://github.com/cuinixam/poks/commit/e95f461a1c95d44ab86b4b0ae8ebc9160d1af6b3))
+- Add search command ([`e61abe5`](https://github.com/cuinixam/poks/commit/e61abe5d9904039fe8d6dfb569f32ddb163f99b1))
+- Add support for multi versions manifests ([`521d4af`](https://github.com/cuinixam/poks/commit/521d4af3912e37bcab554fc4b41829505259aeea))
+
+### Documentation
+
+- Update readme ([`004229f`](https://github.com/cuinixam/poks/commit/004229f64902323f1a502438ff7686877fc43af8))
+
 ## v0.1.0 (2026-02-11)
 
 ### Bug fixes
