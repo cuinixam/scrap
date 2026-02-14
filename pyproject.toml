@@ -27,6 +27,7 @@ dependencies = [
   "mashumaro>=3.13,<4",
   "py7zr>=0,<1",
   "gitpython>=3,<4",
+  "zstandard>=0.20,<1",
 ]
 urls."Bug Tracker" = "https://github.com/cuinixam/poks/issues"
 urls.Changelog = "https://github.com/cuinixam/poks/blob/main/CHANGELOG.md"
@@ -86,6 +87,8 @@ lint.per-file-ignores."tests/**/*" = [
   "D103",
   "D104",
   "S101",
+  "S603",
+  "S607",
 ]
 lint.isort.known-first-party = [ "poks", "tests" ]
 

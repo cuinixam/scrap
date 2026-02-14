@@ -1,0 +1,41 @@
+{
+  "description": "ripgrep (conda-forge) — tests .conda archive support with real downloads",
+  "versions": [
+    {
+      "version": "15.1.0",
+      "bin": ["bin"],
+      "archives": [
+        {
+          "os": "linux",
+          "arch": "x86_64",
+          "url": "https://conda.anaconda.org/conda-forge/linux-64/ripgrep-15.1.0-hdab8a38_0.conda",
+          "sha256": "a745b0d0ca5ae53757e42d893a61a5034ed2ad4791728e376dbc5c6a4f9c3eb0"
+        },
+        {
+          "os": "linux",
+          "arch": "aarch64",
+          "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/ripgrep-15.1.0-h1ebd7d5_0.conda",
+          "sha256": "7ec269a814111159faac0ade197f6936f3c43b27a2652a216837997b0ee25be2"
+        },
+        {
+          "os": "macos",
+          "arch": "x86_64",
+          "url": "https://conda.anaconda.org/conda-forge/osx-64/ripgrep-15.1.0-h121f529_0.conda",
+          "sha256": "b1e3f1bd4d9208f8968bd7b1ca678d2e60d3b4be0a929a59d5d3747c0e4dfc75"
+        },
+        {
+          "os": "macos",
+          "arch": "aarch64",
+          "url": "https://conda.anaconda.org/conda-forge/osx-arm64/ripgrep-15.1.0-hd1458d2_0.conda",
+          "sha256": "b85d0093dd91a7c78c1ff5f5f17b55664636b6a88d68026eea3c63bff067c882"
+        },
+        {
+          "os": "windows",
+          "arch": "x86_64",
+          "url": "https://conda.anaconda.org/conda-forge/win-64/ripgrep-15.1.0-h77a83cd_0.conda",
+          "sha256": "8c8ce1f8437166d0462cdd20cc139f8b1dd7cb0ea8c3925979890d8d374c5fcc"
+        }
+      ]
+    }
+  ]
+}
