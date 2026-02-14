@@ -322,7 +322,7 @@ class Poks:
         if app_version.env:
             dir_str = str(install_dir)
             for k, v in app_version.env.items():
-                env[k] = v.replace("${dir}", dir_str)
+                env[k] = str(Path(v.replace("${dir}", dir_str)))
         return InstalledApp(name=name, version=version, install_dir=install_dir, bin_dirs=bin_dirs, env=env)
 
     def uninstall(self, app_name: str | None = None, version: str | None = None, all_apps: bool = False, wipe: bool = False) -> None:

@@ -99,15 +99,19 @@ def install(
 
         if config_file:
             poks.install(config_file)
-            logger.info("Installation complete.")
         elif app_spec:
             try:
                 poks.install_app(app_spec, bucket)
-                name, version = app_spec.split("@", 1)
-                logger.info(f"Successfully installed {name}@{version}")
             except ValueError as e:
+                progress.stop()
                 logger.error(str(e))
                 raise typer.Exit(1) from e
+
+    if config_file:
+        logger.info("Installation complete.")
+    elif app_spec:
+        name, version = app_spec.split("@", 1)
+        logger.info(f"Successfully installed {name}@{version}")
 
 
 @app.command(help="Uninstall apps.")
