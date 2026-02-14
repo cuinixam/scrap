@@ -16,6 +16,7 @@ from poks.domain import PoksConfig, PoksManifest
 from tests.conftest import PoksEnv
 
 
+@pytest.mark.slow
 @pytest.mark.skipif(
     not (sys.platform == "linux" or sys.platform == "darwin" or sys.platform == "win32"),
     reason="Only standard platforms supported for this real-download test",

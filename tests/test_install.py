@@ -287,3 +287,28 @@ def test_install_app_auto_bucket(
         poks.install_app("app-b@1.0.0")
 
     assert (root_dir / "apps" / "app-b" / "1.0.0").exists()
+
+
+def test_yanked_version_raises(
+    install_env: tuple[Poks, Path, Path],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    poks, root_dir, archives_dir = install_env
+    manifest = _make_manifest(archives_dir)
+    # Mark the version as yanked
+    manifest.versions[0].yanked = "Security vulnerability CVE-2024-1234"
+    bucket_dir = root_dir / "buckets" / "test"
+    _setup_bucket(bucket_dir, {"yanked-tool": manifest})
+
+    config = PoksConfig(
+        buckets=[PoksBucket(name="test", url="unused")],
+        apps=[PoksApp(name="yanked-tool", version="1.0.0", bucket="test")],
+    )
+
+    with (
+        PLATFORM_PATCH,
+        monkeypatch.context() as m,
+        pytest.raises(ValueError, match="yanked"),
+    ):
+        m.setattr("poks.poks.sync_all_buckets", lambda _buckets, _dir: {"test": bucket_dir})
+        poks.install(config)

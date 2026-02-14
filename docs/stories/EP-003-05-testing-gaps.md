@@ -24,11 +24,11 @@ The GitHub Actions matrix tests Ubuntu + Windows but not macOS, despite macOS be
 
 ## Acceptance Criteria
 
-- [ ] Add a test that installing a yanked version raises `ValueError` with the yanked reason.
-- [ ] Add a `@pytest.mark.slow` (or similar) marker to `test_zephyr_integration.py` and configure pytest to skip it by default (run with `--run-slow` or `-m slow`).
-- [ ] Add a test for cache path behavior with colliding URL filenames (scope depends on EP-003-02).
-- [ ] Consider adding `macos-latest` to the CI matrix (at least for one Python version to limit cost).
-- [ ] All existing tests continue to pass.
+- [x] Add a test that installing a yanked version raises `ValueError` with the yanked reason.
+- [x] Add a `@pytest.mark.slow` (or similar) marker to `test_zephyr_integration.py` and configure pytest to skip it by default (run with `--run-slow` or `-m slow`).
+- [x] Add a test for cache path behavior with colliding URL filenames (scope depends on EP-003-02).
+- [x] Consider adding `macos-latest` to the CI matrix (at least for one Python version to limit cost).
+- [x] All existing tests continue to pass.
 
 ## Files to Modify
 

@@ -132,7 +132,8 @@ def test_tar_path_traversal_rejected(tmp_path):
     dest = tmp_path / "out"
     # Python 3.12+ raises tarfile.OutsideDestinationError via data_filter;
     # older versions hit our _validate_entry_paths raising ValueError.
-    with pytest.raises((ValueError, tarfile.OutsideDestinationError)):
+    _outside = getattr(tarfile, "OutsideDestinationError", ValueError)
+    with pytest.raises((ValueError, _outside)):
         extract_archive(archive, dest)
 
 

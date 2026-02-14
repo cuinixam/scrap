@@ -100,7 +100,9 @@ addopts = """\
     --cov=poks
     --cov-report=term
     --cov-report=xml
+    -m "not slow"
     """
+markers = [ "slow: marks tests as slow (real network downloads); deselected by default, run with -m slow" ]
 pythonpath = [ "src" ]
 
 [tool.coverage.run]
