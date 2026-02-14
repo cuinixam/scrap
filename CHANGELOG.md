@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.2.1 (2026-02-14)
+
+### Bug fixes
+
+- Cache collision ([`ccbe52e`](https://github.com/cuinixam/poks/commit/ccbe52e81fc3228ddae174b30dc62c74678c6454))
+
 ## v0.2.0 (2026-02-13)
 
 ### Features
