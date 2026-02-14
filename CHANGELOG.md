@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.3.0 (2026-02-14)
+
+### Bug fixes
+
+- Progress bar is printed again after download is done ([`11180dd`](https://github.com/cuinixam/poks/commit/11180dd39da7c5f8a5e006e606a3d96492843c45))
+
+### Features
+
+- Add options to handle cache ([`fa096ba`](https://github.com/cuinixam/poks/commit/fa096ba99519d825d8e3e0f5e2d1dc244b786371))
+- Parallel downloads with progress ([`6e5e07b`](https://github.com/cuinixam/poks/commit/6e5e07b8bd1e92c5b89b07d5c0ffa9dafbf85888))
+- Install result api ([`280eb08`](https://github.com/cuinixam/poks/commit/280eb08ee10380039027a809cf72ca1700a3568d))
+
 ## v0.2.1 (2026-02-14)
 
 ### Bug fixes
