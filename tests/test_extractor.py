@@ -1,3 +1,4 @@
+import json
 import tarfile
 import zipfile
 from io import BytesIO
@@ -6,11 +7,13 @@ from typing import Literal, cast
 
 import py7zr
 import pytest
+import zstandard
 
 from poks.extractor import extract_archive
 
 HELLO_CONTENT = "hello poks"
 NESTED_CONTENT = "nested file"
+CONDA_PLACEHOLDER = "/opt/anaconda1anaconda2anaconda3"
 
 
 def _create_zip(path: Path, top_dir: str | None = None) -> Path:
@@ -48,12 +51,48 @@ def _create_7z(path: Path, top_dir: str | None = None) -> Path:
     return archive
 
 
+def _make_tar_zst(files: dict[str, bytes]) -> bytes:
+    tar_buf = BytesIO()
+    with tarfile.open(fileobj=tar_buf, mode="w:") as tf:
+        for name, data in files.items():
+            info = tarfile.TarInfo(name=name)
+            info.size = len(data)
+            tf.addfile(info, BytesIO(data))
+    cctx = zstandard.ZstdCompressor()
+    return cctx.compress(tar_buf.getvalue())
+
+
+def _create_conda(
+    path: Path,
+    top_dir: str | None = None,
+    patches: list[dict[str, str]] | None = None,
+    pkg_files: dict[str, bytes] | None = None,
+) -> Path:
+    if pkg_files is None:
+        prefix = f"{top_dir}/" if top_dir else ""
+        pkg_files = {f"{prefix}hello.txt": HELLO_CONTENT.encode()}
+    pkg_tar_zst = _make_tar_zst(pkg_files)
+
+    paths_json = json.dumps({"paths": patches or []}).encode()
+    info_tar_zst = _make_tar_zst({"paths.json": paths_json})
+
+    archive = path / "archive.conda"
+    with zipfile.ZipFile(archive, "w") as zf:
+        zf.writestr("metadata.json", json.dumps({"conda_pkg_format_version": 2}))
+        zf.writestr("pkg-test-1.0-h0_0.tar.zst", pkg_tar_zst)
+        zf.writestr("info-test-1.0-h0_0.tar.zst", info_tar_zst)
+    return archive
+
+
+# -- parametrized extraction tests -------------------------------------------
+
 ARCHIVE_CREATORS = [
     ("zip", lambda p: _create_zip(p)),
     ("tar.gz", lambda p: _create_tar(p, "gz", ".tar.gz")),
     ("tar.xz", lambda p: _create_tar(p, "xz", ".tar.xz")),
     ("tar.bz2", lambda p: _create_tar(p, "bz2", ".tar.bz2")),
     ("7z", lambda p: _create_7z(p)),
+    ("conda", lambda p: _create_conda(p)),
 ]
 
 
@@ -70,6 +109,7 @@ ARCHIVE_CREATORS_WITH_EXTRACT_DIR = [
     ("zip", lambda p: _create_zip(p, top_dir="sdk-1.0")),
     ("tar.gz", lambda p: _create_tar(p, "gz", ".tar.gz", top_dir="sdk-1.0")),
     ("7z", lambda p: _create_7z(p, top_dir="sdk-1.0")),
+    ("conda", lambda p: _create_conda(p, top_dir="sdk-1.0")),
 ]
 
 
@@ -142,3 +182,53 @@ def test_extract_dir_traversal_rejected(tmp_path):
     dest = tmp_path / "out"
     with pytest.raises(ValueError, match="escapes destination directory"):
         extract_archive(archive, dest, extract_dir="../../etc")
+
+
+# -- .conda-specific tests ---------------------------------------------------
+
+
+def test_extract_conda_applies_text_poking(tmp_path):
+    script_content = f"#!/bin/sh\nexport PATH={CONDA_PLACEHOLDER}/bin:$PATH\n"
+    patches = [{"_path": "bin/run.sh", "prefix_placeholder": CONDA_PLACEHOLDER, "file_mode": "text", "path_type": "hardlink"}]
+    archive = _create_conda(
+        tmp_path,
+        pkg_files={"bin/run.sh": script_content.encode()},
+        patches=patches,
+    )
+    dest = tmp_path / "out"
+    extract_archive(archive, dest)
+    result = (dest / "bin/run.sh").read_text()
+    assert CONDA_PLACEHOLDER not in result
+    assert str(dest) in result
+
+
+def test_extract_conda_no_paths_json(tmp_path):
+    pkg_tar_zst = _make_tar_zst({"hello.txt": HELLO_CONTENT.encode()})
+    info_tar_zst = _make_tar_zst({})
+
+    archive = tmp_path / "archive.conda"
+    with zipfile.ZipFile(archive, "w") as zf:
+        zf.writestr("metadata.json", json.dumps({"conda_pkg_format_version": 2}))
+        zf.writestr("pkg-test-1.0-h0_0.tar.zst", pkg_tar_zst)
+        zf.writestr("info-test-1.0-h0_0.tar.zst", info_tar_zst)
+
+    dest = tmp_path / "out"
+    extract_archive(archive, dest)
+    assert (dest / "hello.txt").read_text() == HELLO_CONTENT
+
+
+def test_conda_path_traversal_in_inner_tar_rejected(tmp_path):
+    malicious_files = {"../escape.txt": b"pwned"}
+    pkg_tar_zst = _make_tar_zst(malicious_files)
+    info_tar_zst = _make_tar_zst({"paths.json": json.dumps({"paths": []}).encode()})
+
+    archive = tmp_path / "malicious.conda"
+    with zipfile.ZipFile(archive, "w") as zf:
+        zf.writestr("metadata.json", json.dumps({"conda_pkg_format_version": 2}))
+        zf.writestr("pkg-test-1.0-h0_0.tar.zst", pkg_tar_zst)
+        zf.writestr("info-test-1.0-h0_0.tar.zst", info_tar_zst)
+
+    dest = tmp_path / "out"
+    _outside = getattr(tarfile, "OutsideDestinationError", ValueError)
+    with pytest.raises((ValueError, _outside)):
+        extract_archive(archive, dest)

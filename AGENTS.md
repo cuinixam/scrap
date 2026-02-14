@@ -56,6 +56,17 @@ Poks is a cross-platform, user-space package manager for downloading pre-built b
 
 Skipping this step is unacceptable.
 
+### ⚠️ MANDATORY: Never Change the Plan Without Approval
+
+**NEVER deviate from the approved plan without asking the user first.** If the current approach hits a blocker (e.g., a tool doesn't work, a dependency is missing, a test fails unexpectedly), you MUST:
+
+1. **Stop** — do not attempt an alternative approach on your own
+2. **Report the problem** to the user with a clear description of what went wrong
+3. **Propose alternatives** if you have ideas, but do NOT implement them
+4. **Wait for explicit approval** before changing direction
+
+This applies to all scope changes: switching libraries, replacing test targets, altering architecture, or any deviation from what was agreed upon. The user decides, not the agent.
+
 ### Running Tests and Verification
 
 The project uses `pypeline-runner` for all automation. Key commands:

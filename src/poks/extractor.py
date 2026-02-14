@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import io
+import json
 import shutil
 import tarfile
 import zipfile
@@ -11,8 +13,12 @@ from pathlib import Path
 from typing import Any, Literal, cast
 
 import py7zr
+import zstandard
+
+from poks.poker import PatchEntry, poke
 
 SUPPORTED_FORMATS: dict[str, str] = {
+    ".conda": "conda",
     ".zip": "zip",
     ".tar.gz": "tar:gz",
     ".tgz": "tar:gz",
@@ -85,12 +91,74 @@ def _relocate_extract_dir(dest_dir: Path, extract_dir: str) -> None:
     source.rmdir()
 
 
+def _decompress_zstd(data: bytes) -> bytes:
+    """Decompress zstandard-compressed bytes."""
+    dctx = zstandard.ZstdDecompressor()
+    return dctx.decompress(data, max_output_size=256 * 1024 * 1024)
+
+
+def _extract_tar_from_bytes(data: bytes, dest_dir: Path) -> None:
+    """Extract a tar archive from raw bytes into dest_dir with path validation."""
+    with tarfile.open(fileobj=io.BytesIO(data), mode="r:") as tf:
+        if hasattr(tarfile, "data_filter"):
+            tf.extractall(dest_dir, filter="data")
+        else:
+            _validate_entry_paths([member.name for member in tf.getmembers()], dest_dir)
+            tf.extractall(dest_dir)
+
+
+def _parse_conda_patches(info_tar_zst_bytes: bytes) -> list[PatchEntry]:
+    """Parse paths.json from a conda info tar.zst and return patch entries."""
+    tar_bytes = _decompress_zstd(info_tar_zst_bytes)
+    with tarfile.open(fileobj=io.BytesIO(tar_bytes), mode="r:") as tf:
+        for member in tf.getmembers():
+            if member.name.endswith("paths.json") or member.name == "paths.json":
+                extracted = tf.extractfile(member)
+                if extracted is None:
+                    continue
+                paths_data = json.loads(extracted.read())
+                return [
+                    PatchEntry(
+                        path=entry["_path"],
+                        prefix_placeholder=entry["prefix_placeholder"],
+                        file_mode=entry["file_mode"],
+                    )
+                    for entry in paths_data.get("paths", [])
+                    if "prefix_placeholder" in entry and "file_mode" in entry
+                ]
+    return []
+
+
+def _extract_conda(archive_path: Path, dest_dir: Path) -> None:
+    """Extract a .conda archive: unzip outer, extract inner tar.zst, apply poking."""
+    patches: list[PatchEntry] = []
+    with zipfile.ZipFile(archive_path) as zf:
+        names = zf.namelist()
+        info_members = [name for name in names if name.startswith("info-") and name.endswith(".tar.zst")]
+        pkg_members = [name for name in names if name.startswith("pkg-") and name.endswith(".tar.zst")]
+        if not pkg_members:
+            raise ValueError(f"Invalid .conda archive: no pkg-*.tar.zst found in {archive_path.name}")
+        if info_members:
+            info_data = zf.read(info_members[0])
+            patches = _parse_conda_patches(info_data)
+        pkg_data = zf.read(pkg_members[0])
+
+    pkg_tar_bytes = _decompress_zstd(pkg_data)
+    _extract_tar_from_bytes(pkg_tar_bytes, dest_dir)
+
+    if patches:
+        poke(dest_dir, patches)
+
+
 def extract_archive(archive_path: Path, dest_dir: Path, extract_dir: str | None = None) -> Path:
     """Extract an archive into *dest_dir* and return *dest_dir*."""
     fmt = _detect_format(archive_path)
     dest_dir.mkdir(parents=True, exist_ok=True)
-    with _open_archive(archive_path, fmt) as archive:
-        _extract_all(archive, fmt, dest_dir)
+    if fmt == "conda":
+        _extract_conda(archive_path, dest_dir)
+    else:
+        with _open_archive(archive_path, fmt) as archive:
+            _extract_all(archive, fmt, dest_dir)
     if extract_dir:
         _relocate_extract_dir(dest_dir, extract_dir)
     return dest_dir
