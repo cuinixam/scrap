@@ -20,10 +20,10 @@ Both resolve to `cache/archive.tar.gz`. The SHA256 check will detect the mismatc
 
 ## Acceptance Criteria
 
-- [ ] Cache filenames incorporate a URL-derived hash to prevent collisions (e.g., `{sha256(url)[:8]}_{filename}`).
-- [ ] Existing cached files are still usable (graceful migration or acceptable cache miss on upgrade).
-- [ ] Add a test demonstrating that two URLs with the same filename produce distinct cache paths.
-- [ ] All existing tests continue to pass.
+- [x] Cache filenames incorporate a URL-derived hash to prevent collisions (e.g., `{sha256(url)[:8]}_{filename}`).
+- [x] Existing cached files are still usable (graceful migration or acceptable cache miss on upgrade).
+- [x] Add a test demonstrating that two URLs with the same filename produce distinct cache paths.
+- [x] All existing tests continue to pass.
 
 ## Files to Modify
 

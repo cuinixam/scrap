@@ -66,7 +66,9 @@ def verify_sha256(file_path: Path, expected_hash: str) -> None:
 
 def _cache_path_for(url: str, cache_dir: Path) -> Path:
     """Derive a deterministic cache file path from a URL."""
-    return cache_dir / Path(url.split("?")[0].rstrip("/")).name
+    filename = Path(url.split("?")[0].rstrip("/")).name
+    url_hash = hashlib.sha256(url.encode()).hexdigest()[:8]
+    return cache_dir / f"{url_hash}_{filename}"
 
 
 def get_cached_or_download(url: str, sha256: str, cache_dir: Path) -> Path:
