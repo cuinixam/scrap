@@ -23,10 +23,11 @@ SAMPLE_CONTENT = b"hello poks"
 SAMPLE_SHA256 = hashlib.sha256(SAMPLE_CONTENT).hexdigest()
 
 
-def _mock_urlopen() -> MagicMock:
+def _mock_urlopen(content_length: str | None = None) -> MagicMock:
     """Create a mock urlopen that returns SAMPLE_CONTENT."""
     mock_response = MagicMock()
     mock_response.read = BytesIO(SAMPLE_CONTENT).read
+    mock_response.headers = {"Content-Length": content_length} if content_length else {}
     mock_response.__enter__ = lambda s: s
     mock_response.__exit__ = MagicMock(return_value=False)
     mock_open = MagicMock(return_value=mock_response)
@@ -128,3 +129,43 @@ def test_cache_path_collision_avoidance(tmp_path: Path) -> None:
     assert path_a != path_b
     assert path_a.name.endswith("_archive.tar.gz")
     assert path_b.name.endswith("_archive.tar.gz")
+
+
+# -- progress callback -------------------------------------------------------
+
+
+def test_progress_callback_invoked_with_total(tmp_path: Path) -> None:
+    dest = tmp_path / "archive.tar.gz"
+    calls: list[tuple[str, int, int | None]] = []
+
+    with patch("poks.downloader.urlopen", _mock_urlopen(content_length=str(len(SAMPLE_CONTENT)))):
+        download_file(
+            "https://example.com/archive.tar.gz",
+            dest,
+            app_name="my-tool",
+            progress_callback=lambda name, downloaded, total: calls.append((name, downloaded, total)),
+        )
+
+    assert len(calls) >= 1
+    assert all(name == "my-tool" for name, _, _ in calls)
+    _last_name, last_downloaded, last_total = calls[-1]
+    assert last_downloaded == len(SAMPLE_CONTENT)
+    assert last_total == len(SAMPLE_CONTENT)
+
+
+def test_progress_callback_without_content_length(tmp_path: Path) -> None:
+    dest = tmp_path / "archive.tar.gz"
+    calls: list[tuple[str, int, int | None]] = []
+
+    with patch("poks.downloader.urlopen", _mock_urlopen()):
+        download_file(
+            "https://example.com/archive.tar.gz",
+            dest,
+            app_name="my-tool",
+            progress_callback=lambda name, downloaded, total: calls.append((name, downloaded, total)),
+        )
+
+    assert len(calls) >= 1
+    _last_name, last_downloaded, last_total = calls[-1]
+    assert last_downloaded == len(SAMPLE_CONTENT)
+    assert last_total is None

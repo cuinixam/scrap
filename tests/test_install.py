@@ -293,6 +293,45 @@ def test_install_app_auto_bucket(
     assert installed.install_dir == root_dir / "apps" / "app-b" / "1.0.0"
 
 
+def test_parallel_install_with_progress_callback(
+    install_env: tuple[Poks, Path, Path],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    poks, root_dir, archives_dir = install_env
+    calls: list[tuple[str, int, int | None]] = []
+    poks.progress_callback = lambda name, downloaded, total: calls.append((name, downloaded, total))
+
+    dir_a = archives_dir / "a"
+    dir_a.mkdir()
+    manifest_a = _make_manifest(dir_a, files={"bin/a": "aaa"}, archive_name="archive_a")
+    dir_b = archives_dir / "b"
+    dir_b.mkdir()
+    manifest_b = _make_manifest(dir_b, version="2.0.0", files={"bin/b": "bbb"}, archive_name="archive_b")
+    bucket_dir = root_dir / "buckets" / "test"
+    _setup_bucket(bucket_dir, {"tool-a": manifest_a, "tool-b": manifest_b})
+
+    config = PoksConfig(
+        buckets=[PoksBucket(name="test", url="unused")],
+        apps=[
+            PoksApp(name="tool-a", version="1.0.0", bucket="test"),
+            PoksApp(name="tool-b", version="2.0.0", bucket="test"),
+        ],
+    )
+
+    with PLATFORM_PATCH:
+        monkeypatch.setattr(
+            "poks.poks.sync_all_buckets",
+            lambda _buckets, _dir: {"test": bucket_dir},
+        )
+        result = poks.install(config)
+
+    assert len(result.apps) == 2
+    app_names = {app.name for app in result.apps}
+    assert app_names == {"tool-a", "tool-b"}
+    reported_names = {name for name, _, _ in calls}
+    assert reported_names == {"tool-a", "tool-b"}
+
+
 def test_yanked_version_raises(
     install_env: tuple[Poks, Path, Path],
     monkeypatch: pytest.MonkeyPatch,

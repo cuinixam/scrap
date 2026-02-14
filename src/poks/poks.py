@@ -1,5 +1,6 @@
 import json
 import shutil
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from git import Repo
@@ -18,7 +19,7 @@ from poks.bucket import (
     update_local_buckets,
 )
 from poks.domain import InstalledApp, InstallResult, PoksApp, PoksAppVersion, PoksBucket, PoksBucketRegistry, PoksConfig, PoksManifest
-from poks.downloader import get_cached_or_download
+from poks.downloader import ProgressCallback, get_cached_or_download
 from poks.extractor import extract_archive
 from poks.platform import get_current_platform
 from poks.resolver import resolve_archive, resolve_download_url
@@ -27,18 +28,25 @@ from poks.resolver import resolve_archive, resolve_download_url
 class Poks:
     """Cross-platform package manager for developer tools."""
 
-    def __init__(self, root_dir: Path) -> None:
+    def __init__(
+        self,
+        root_dir: Path,
+        progress_callback: ProgressCallback | None = None,
+    ) -> None:
         """
         Initialize Poks with a root directory.
 
         Args:
             root_dir: Root directory for Poks (apps, buckets, cache).
+            progress_callback: Optional callback invoked during downloads
+                with ``(app_name, bytes_downloaded, total_bytes_or_none)``.
 
         """
         self.root_dir = root_dir
         self.apps_dir = root_dir / "apps"
         self.buckets_dir = root_dir / "buckets"
         self.cache_dir = root_dir / "cache"
+        self.progress_callback = progress_callback
 
     def install_app(self, app_spec: str, bucket: str | None = None) -> InstalledApp:
         """
@@ -150,14 +158,30 @@ class Poks:
 
         current_os, current_arch = get_current_platform()
         bucket_paths = sync_all_buckets(config.buckets, self.buckets_dir)
-        installed_apps: list[InstalledApp] = []
 
-        for app in config.apps:
-            installed = self._install_single_app(app, bucket_paths, config.buckets, current_os, current_arch)
-            if installed:
-                installed_apps.append(installed)
-
+        installed_apps = self._install_apps_parallel(config.apps, bucket_paths, config.buckets, current_os, current_arch)
         return InstallResult(apps=installed_apps)
+
+    def _install_apps_parallel(
+        self,
+        apps: list[PoksApp],
+        bucket_paths: dict[str, Path],
+        buckets_list: list[PoksBucket],
+        current_os: str,
+        current_arch: str,
+    ) -> list[InstalledApp]:
+        if len(apps) <= 1:
+            results = [self._install_single_app(app, bucket_paths, buckets_list, current_os, current_arch) for app in apps]
+            return [r for r in results if r is not None]
+
+        # Map future -> index to preserve config ordering
+        with ThreadPoolExecutor(max_workers=len(apps)) as executor:
+            futures = {executor.submit(self._install_single_app, app, bucket_paths, buckets_list, current_os, current_arch): idx for idx, app in enumerate(apps)}
+            ordered: dict[int, InstalledApp | None] = {}
+            for future in as_completed(futures):
+                ordered[futures[future]] = future.result()
+
+        return [app for idx in sorted(ordered) if (app := ordered[idx]) is not None]
 
     def _ensure_buckets_registered(self, buckets: list[PoksBucket]) -> None:
         registry = load_registry(self.buckets_dir / "buckets.json")
@@ -209,15 +233,23 @@ class Poks:
         if not install_dir.exists():
             archive = resolve_archive(app_version, current_os, current_arch)
             url = resolve_download_url(app_version, archive)
-            archive_path = get_cached_or_download(url, archive.sha256, self.cache_dir)
+            archive_path = get_cached_or_download(
+                url,
+                archive.sha256,
+                self.cache_dir,
+                app_name=app.name,
+                progress_callback=self.progress_callback,
+            )
             extract_archive(archive_path, install_dir, app_version.extract_dir)
 
             # Persist manifest and receipt for future reference
             (install_dir / ".manifest.json").write_text(manifest.to_json_string())
             self._create_receipt(install_dir, app.bucket, buckets_list)
-            logger.info(f"Installed {app.name}@{app.version}")
+            if not self.progress_callback:
+                logger.info(f"Installed {app.name}@{app.version}")
         else:
-            logger.info(f"Skipping {app.name}@{app.version}: already installed")
+            if not self.progress_callback:
+                logger.info(f"Skipping {app.name}@{app.version}: already installed")
 
         return self._build_installed_app(app.name, app.version, install_dir, app_version)
 

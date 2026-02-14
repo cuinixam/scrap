@@ -1,0 +1,15 @@
+{
+  "buckets": [
+    {
+      "name": "poks-bucket",
+      "url": "https://github.com/cuinixam/poks-bucket.git"
+    }
+  ],
+  "apps": [
+    {
+      "name": "riscv64-zephyr-elf",
+      "version": "0.17.4",
+      "bucket": "poks-bucket"
+    }
+  ]
+}

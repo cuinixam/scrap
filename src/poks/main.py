@@ -1,18 +1,39 @@
 """CLI entry point for Poks package manager."""
 
 import sys
+import threading
 from pathlib import Path
 from typing import Annotated
 
 import typer
 from py_app_dev.core.exceptions import UserNotificationException
 from py_app_dev.core.logging import logger, setup_logger, time_it
+from rich.progress import BarColumn, DownloadColumn, Progress, TaskID, TimeRemainingColumn, TransferSpeedColumn
 
 from poks import __version__
+from poks.downloader import ProgressCallback
 from poks.poks import Poks
 
 package_name = "poks"
 DEFAULT_ROOT_DIR = Path.home() / ".poks"
+
+
+def _create_progress_callback(progress: Progress) -> ProgressCallback:
+    """Create a thread-safe progress callback that manages per-app task bars."""
+    tasks: dict[str, TaskID] = {}
+    lock = threading.Lock()
+
+    def callback(app_name: str, downloaded: int, total: int | None) -> None:
+        with lock:
+            if app_name not in tasks:
+                tasks[app_name] = progress.add_task(app_name, total=total or 0)
+            task_id = tasks[app_name]
+        if total and progress.tasks[task_id].total != total:
+            progress.update(task_id, total=total)
+        progress.update(task_id, completed=downloaded)
+
+    return callback
+
 
 app = typer.Typer(
     name=package_name,
@@ -66,19 +87,26 @@ def install(
         logger.error("Specify either -c/--config or app@version")
         raise typer.Exit(1)
 
-    poks = Poks(root_dir=root_dir)
+    with Progress(
+        "[progress.description]{task.description}",
+        BarColumn(),
+        DownloadColumn(),
+        TransferSpeedColumn(),
+        TimeRemainingColumn(),
+    ) as progress:
+        poks = Poks(root_dir=root_dir, progress_callback=_create_progress_callback(progress))
 
-    if config_file:
-        poks.install(config_file)
-        logger.info("Installation complete.")
-    elif app_spec:
-        try:
-            poks.install_app(app_spec, bucket)
-            name, version = app_spec.split("@", 1)
-            logger.info(f"Successfully installed {name}@{version}")
-        except ValueError as e:
-            logger.error(str(e))
-            raise typer.Exit(1) from e
+        if config_file:
+            poks.install(config_file)
+            logger.info("Installation complete.")
+        elif app_spec:
+            try:
+                poks.install_app(app_spec, bucket)
+                name, version = app_spec.split("@", 1)
+                logger.info(f"Successfully installed {name}@{version}")
+            except ValueError as e:
+                logger.error(str(e))
+                raise typer.Exit(1) from e
 
 
 @app.command(help="Uninstall apps.")
