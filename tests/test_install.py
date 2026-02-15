@@ -262,7 +262,7 @@ def test_install_app_explicit_bucket(
             "poks.poks.sync_all_buckets",
             lambda _buckets, _dir: {"my-bucket": bucket_dir},
         )
-        installed = poks.install_app("app-a@1.0.0", bucket="my-bucket")
+        installed = poks.install_app("app-a", "1.0.0", bucket="my-bucket")
 
     assert installed.name == "app-a"
     assert installed.install_dir == root_dir / "apps" / "app-a" / "1.0.0"
@@ -287,7 +287,7 @@ def test_install_app_auto_bucket(
             "poks.poks.sync_all_buckets",
             lambda _buckets, _dir: {"auto-bucket": bucket_dir},
         )
-        installed = poks.install_app("app-b@1.0.0")
+        installed = poks.install_app("app-b", "1.0.0")
 
     assert installed.name == "app-b"
     assert installed.install_dir == root_dir / "apps" / "app-b" / "1.0.0"
@@ -355,3 +355,33 @@ def test_yanked_version_raises(
     ):
         m.setattr("poks.poks.sync_all_buckets", lambda _buckets, _dir: {"test": bucket_dir})
         poks.install(config)
+
+
+def test_install_from_manifest(
+    install_env: tuple[Poks, Path, Path],
+) -> None:
+    poks, root_dir, archives_dir = install_env
+    manifest = _make_manifest(archives_dir, bin_dirs=["bin"], env_vars={"TOOL_HOME": "${dir}"})
+    manifest_path = archives_dir / "my-tool.json"
+    manifest_path.write_text(manifest.to_json_string())
+
+    with PLATFORM_PATCH:
+        installed = poks.install_from_manifest(manifest_path, "1.0.0")
+
+    assert installed.name == "my-tool"
+    assert installed.version == "1.0.0"
+    assert installed.install_dir == root_dir / "apps" / "my-tool" / "1.0.0"
+    assert (installed.install_dir / "bin" / "tool").exists()
+    assert installed.env["TOOL_HOME"] == str(installed.install_dir)
+
+
+def test_install_from_manifest_version_not_found(
+    install_env: tuple[Poks, Path, Path],
+) -> None:
+    poks, _root_dir, archives_dir = install_env
+    manifest = _make_manifest(archives_dir)
+    manifest_path = archives_dir / "my-tool.json"
+    manifest_path.write_text(manifest.to_json_string())
+
+    with pytest.raises(ValueError, match=r"Version 9\.9\.9 not found"):
+        poks.install_from_manifest(manifest_path, "9.9.9")

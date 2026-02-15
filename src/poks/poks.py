@@ -51,25 +51,22 @@ class Poks:
         self.progress_callback = progress_callback
         self.use_cache = use_cache
 
-    def install_app(self, app_spec: str, bucket: str | None = None) -> InstalledApp:
+    def install_app(self, app_name: str, version: str, bucket: str | None = None) -> InstalledApp:
         """
-        Install a single application.
+        Install a single application from a bucket.
 
         Args:
-            app_spec: Application specification (name@version).
+            app_name: Application name.
+            version: Version to install.
             bucket: Optional bucket name or URL.
 
         Returns:
             Details about the installed application.
 
         Raises:
-            ValueError: If app_spec is invalid or bucket is not found.
+            ValueError: If bucket is not found or version is missing.
 
         """
-        if "@" not in app_spec:
-            raise ValueError(f"Invalid app spec '{app_spec}'. Use format: name@version")
-
-        app_name, app_version = app_spec.split("@", 1)
         registry_path = self.buckets_dir / "buckets.json"
         registry = load_registry(registry_path)
 
@@ -83,11 +80,60 @@ class Poks:
 
         config = PoksConfig(
             buckets=[bucket_obj],
-            apps=[PoksApp(name=app_name, version=app_version, bucket=bucket_ref)],
+            apps=[PoksApp(name=app_name, version=version, bucket=bucket_ref)],
         )
 
         result = self.install(config)
         return result.apps[0]
+
+    def install_from_manifest(self, manifest_path: Path, version: str) -> InstalledApp:
+        """
+        Install an application directly from a manifest file.
+
+        Args:
+            manifest_path: Path to the manifest JSON file. The app name is derived from the filename stem.
+            version: Version to install.
+
+        Returns:
+            Details about the installed application.
+
+        Raises:
+            ValueError: If the version is not found or is yanked.
+            FileNotFoundError: If the manifest file does not exist.
+
+        """
+        app_name = manifest_path.stem
+        manifest = PoksManifest.from_json_file(manifest_path)
+        current_os, current_arch = get_current_platform()
+
+        app_version = next((v for v in manifest.versions if v.version == version), None)
+        if not app_version:
+            raise ValueError(f"Version {version} not found for app {app_name} in manifest")
+        if app_version.yanked:
+            raise ValueError(f"Version {version} of {app_name} is yanked: {app_version.yanked}")
+
+        install_dir = self.apps_dir / app_name / version
+        if not install_dir.exists():
+            archive = resolve_archive(app_version, current_os, current_arch)
+            url = resolve_download_url(app_version, archive)
+            archive_path = get_cached_or_download(
+                url,
+                archive.sha256,
+                self.cache_dir,
+                app_name=app_name,
+                progress_callback=self.progress_callback,
+                use_cache=self.use_cache,
+            )
+            extract_archive(archive_path, install_dir, app_version.extract_dir)
+            (install_dir / ".manifest.json").write_text(manifest.to_json_string())
+            self._create_receipt(install_dir, "", [])
+            if not self.progress_callback:
+                logger.info(f"Installed {app_name}@{version}")
+        else:
+            if not self.progress_callback:
+                logger.info(f"Skipping {app_name}@{version}: already installed")
+
+        return self._build_installed_app(app_name, version, install_dir, app_version)
 
     def _resolve_bucket(self, bucket_arg: str | None, app_name: str, registry: PoksBucketRegistry) -> PoksBucket:
         """Resolve the bucket logic for installation to avoid nesting."""

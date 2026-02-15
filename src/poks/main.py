@@ -71,21 +71,45 @@ def search(
         typer.echo(f"  {app_name}")
 
 
-@app.command(help="Install apps from configuration file or install a single app.")
+def _validate_install_args(
+    config_file: Path | None,
+    app_name: str | None,
+    version: str | None,
+    manifest: Path | None,
+    bucket: str | None,
+) -> bool:
+    """Validate install command arguments. Returns True if valid, logs error and returns False otherwise."""
+    modes = sum(bool(x) for x in (config_file, app_name, manifest))
+    if modes == 0:
+        logger.error("Specify one of: --config, --app, or --manifest")
+        return False
+    if modes > 1:
+        logger.error("Options --config, --app, and --manifest are mutually exclusive.")
+        return False
+    if (app_name or manifest) and not version:
+        logger.error("--version is required with --app or --manifest.")
+        return False
+    if manifest and bucket:
+        logger.error("--bucket cannot be used with --manifest.")
+        return False
+    if config_file and (version or bucket):
+        logger.error("--version and --bucket cannot be used with --config.")
+        return False
+    return True
+
+
+@app.command(help="Install apps from a config file, a bucket, or a manifest file.")
 @time_it("install")
 def install(
-    app_spec: Annotated[str | None, typer.Argument(help="App to install. Format: name@version")] = None,
+    app_name: Annotated[str | None, typer.Option("--app", help="App name to install.")] = None,
+    version: Annotated[str | None, typer.Option("--version", help="Version to install.")] = None,
+    manifest: Annotated[Path | None, typer.Option("--manifest", "-m", help="Path to an app manifest file.")] = None,
     config_file: Annotated[Path | None, typer.Option("-c", "--config", help="Path to poks.json configuration file.")] = None,
-    bucket: Annotated[str | None, typer.Option("--bucket", help="Bucket name or URL for single-app install.")] = None,
+    bucket: Annotated[str | None, typer.Option("--bucket", help="Bucket name or URL.")] = None,
     cache: Annotated[bool, typer.Option("--cache/--no-cache", help="Use download cache.")] = True,
     root_dir: Annotated[Path, typer.Option("--root", help="Root directory for Poks.")] = DEFAULT_ROOT_DIR,
 ) -> None:
-    if config_file and app_spec:
-        logger.error("Cannot use both -c/--config and app@version. Choose one install mode.")
-        raise typer.Exit(1)
-
-    if not config_file and not app_spec:
-        logger.error("Specify either -c/--config or app@version")
+    if not _validate_install_args(config_file, app_name, version, manifest, bucket):
         raise typer.Exit(1)
 
     with Progress(
@@ -97,21 +121,24 @@ def install(
     ) as progress:
         poks = Poks(root_dir=root_dir, progress_callback=_create_progress_callback(progress), use_cache=cache)
 
-        if config_file:
-            poks.install(config_file)
-        elif app_spec:
-            try:
-                poks.install_app(app_spec, bucket)
-            except ValueError as e:
-                progress.stop()
-                logger.error(str(e))
-                raise typer.Exit(1) from e
+        try:
+            if config_file:
+                poks.install(config_file)
+            elif manifest:
+                poks.install_from_manifest(manifest, version)  # type: ignore[arg-type]
+            elif app_name:
+                poks.install_app(app_name, version, bucket)  # type: ignore[arg-type]
+        except (ValueError, FileNotFoundError) as e:
+            progress.stop()
+            logger.error(str(e))
+            raise typer.Exit(1) from e
 
     if config_file:
         logger.info("Installation complete.")
-    elif app_spec:
-        name, version = app_spec.split("@", 1)
-        logger.info(f"Successfully installed {name}@{version}")
+    elif manifest:
+        logger.info(f"Successfully installed {manifest.stem}@{version}")
+    elif app_name:
+        logger.info(f"Successfully installed {app_name}@{version}")
 
 
 @app.command(help="Uninstall apps.")

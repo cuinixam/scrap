@@ -66,7 +66,7 @@ def test_install_single_app_searches_all_buckets(poks_env: PoksEnv) -> None:
     poks_env.add_manifest("my-app", manifest)
     poks_env.poks.install(PoksConfig(buckets=[PoksBucket(name="test", url=poks_env.bucket_url)], apps=[]))
 
-    result = runner.invoke(app, ["install", "my-app@2.0.0", "--root", str(poks_env.root_dir)])
+    result = runner.invoke(app, ["install", "--app", "my-app", "--version", "2.0.0", "--root", str(poks_env.root_dir)])
 
     assert result.exit_code == 0
     assert (poks_env.apps_dir / "my-app" / "2.0.0" / "data.txt").exists()
@@ -91,7 +91,7 @@ def test_install_single_app_with_specific_bucket(poks_env: PoksEnv) -> None:
     poks_env.add_manifest("specific-app", manifest)
     poks_env.poks.install(PoksConfig(buckets=[PoksBucket(name="test", url=poks_env.bucket_url)], apps=[]))
 
-    result = runner.invoke(app, ["install", "specific-app@3.0.0", "--bucket", "test", "--root", str(poks_env.root_dir)])
+    result = runner.invoke(app, ["install", "--app", "specific-app", "--version", "3.0.0", "--bucket", "test", "--root", str(poks_env.root_dir)])
 
     assert result.exit_code == 0
     assert (poks_env.apps_dir / "specific-app" / "3.0.0" / "file.txt").exists()
@@ -115,7 +115,7 @@ def test_install_single_app_with_bucket_url(poks_env: PoksEnv) -> None:
     )
     poks_env.add_manifest("url-app", manifest)
 
-    result = runner.invoke(app, ["install", "url-app@4.0.0", "--bucket", poks_env.bucket_url, "--root", str(poks_env.root_dir)])
+    result = runner.invoke(app, ["install", "--app", "url-app", "--version", "4.0.0", "--bucket", poks_env.bucket_url, "--root", str(poks_env.root_dir)])
 
     assert result.exit_code == 0
     assert (poks_env.apps_dir / "url-app" / "4.0.0" / "readme.md").exists()
@@ -125,36 +125,70 @@ def test_install_no_buckets_no_url_fails(tmp_path: Path) -> None:
     empty_root = tmp_path / ".poks"
     empty_root.mkdir()
 
-    result = runner.invoke(app, ["install", "nonexistent@1.0.0", "--root", str(empty_root)])
+    result = runner.invoke(app, ["install", "--app", "nonexistent", "--version", "1.0.0", "--root", str(empty_root)])
 
     assert result.exit_code == 1
 
 
-def test_install_config_and_app_spec_mutually_exclusive(poks_env: PoksEnv, tmp_path: Path) -> None:
+def test_install_config_and_app_mutually_exclusive(poks_env: PoksEnv, tmp_path: Path) -> None:
     config_path = tmp_path / "poks.json"
     config_path.write_text("{}")
 
-    result = runner.invoke(app, ["install", "app@1.0.0", "-c", str(config_path), "--root", str(poks_env.root_dir)])
+    result = runner.invoke(app, ["install", "--app", "myapp", "--version", "1.0.0", "-c", str(config_path), "--root", str(poks_env.root_dir)])
 
     assert result.exit_code == 1
 
 
-def test_install_requires_either_config_or_app_spec() -> None:
+def test_install_requires_mode() -> None:
     result = runner.invoke(app, ["install"])
 
     assert result.exit_code == 1
 
 
-def test_install_app_spec_requires_at_symbol(poks_env: PoksEnv) -> None:
-    result = runner.invoke(app, ["install", "invalid-format", "--root", str(poks_env.root_dir)])
+def test_install_app_requires_version(poks_env: PoksEnv) -> None:
+    result = runner.invoke(app, ["install", "--app", "myapp", "--root", str(poks_env.root_dir)])
+
+    assert result.exit_code == 1
+
+
+def test_install_manifest_requires_version(poks_env: PoksEnv, tmp_path: Path) -> None:
+    manifest_path = tmp_path / "myapp.json"
+    manifest_path.write_text("{}")
+
+    result = runner.invoke(app, ["install", "--manifest", str(manifest_path), "--root", str(poks_env.root_dir)])
 
     assert result.exit_code == 1
 
 
 def test_install_bucket_not_found(poks_env: PoksEnv) -> None:
-    result = runner.invoke(app, ["install", "app@1.0.0", "--bucket", "nonexistent", "--root", str(poks_env.root_dir)])
+    result = runner.invoke(app, ["install", "--app", "myapp", "--version", "1.0.0", "--bucket", "nonexistent", "--root", str(poks_env.root_dir)])
 
     assert result.exit_code == 1
+
+
+def test_install_from_manifest_cli(poks_env: PoksEnv) -> None:
+    archive_path, sha256 = poks_env.make_archive({"data.txt": "hello"}, fmt="tar.gz")
+    manifest = PoksManifest(
+        description="Manifest App",
+        versions=[
+            PoksAppVersion(
+                version="1.0.0",
+                url=archive_path.as_uri(),
+                archives=[
+                    PoksArchive(os="linux", arch="x86_64", ext=".tar.gz", sha256=sha256),
+                    PoksArchive(os="macos", arch="aarch64", ext=".tar.gz", sha256=sha256),
+                    PoksArchive(os="windows", arch="x86_64", ext=".tar.gz", sha256=sha256),
+                ],
+            )
+        ],
+    )
+    manifest_path = poks_env.root_dir / "my-tool.json"
+    manifest_path.write_text(manifest.to_json_string())
+
+    result = runner.invoke(app, ["install", "--manifest", str(manifest_path), "--version", "1.0.0", "--root", str(poks_env.root_dir)])
+
+    assert result.exit_code == 0
+    assert (poks_env.apps_dir / "my-tool" / "1.0.0" / "data.txt").exists()
 
 
 def test_uninstall_specific_version(poks_env: PoksEnv) -> None:
