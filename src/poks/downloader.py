@@ -49,7 +49,7 @@ def download_file(
     """
     dest.parent.mkdir(parents=True, exist_ok=True)
     try:
-        with urlopen(url, timeout=_DOWNLOAD_TIMEOUT) as response, dest.open("wb") as fh:
+        with urlopen(url, timeout=_DOWNLOAD_TIMEOUT) as response, dest.open("wb") as fh:  # noqa: S310
             content_length = response.headers.get("Content-Length")
             total = int(content_length) if content_length else None
             downloaded = 0

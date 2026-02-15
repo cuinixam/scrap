@@ -68,15 +68,15 @@ def _extract_all(archive: Any, fmt: str, dest_dir: Path) -> None:
     """Extract all contents of an archive into dest_dir after validating paths."""
     if fmt == "zip":
         _validate_entry_paths(archive.namelist(), dest_dir)
-        archive.extractall(dest_dir)
+        archive.extractall(dest_dir)  # noqa: S202
     elif fmt == "7z":
         _validate_entry_paths(archive.getnames(), dest_dir)
-        archive.extractall(path=dest_dir)
+        archive.extractall(path=dest_dir)  # noqa: S202
     elif hasattr(tarfile, "data_filter"):
         archive.extractall(dest_dir, filter="data")
     else:
         _validate_entry_paths([member.name for member in archive.getmembers()], dest_dir)
-        archive.extractall(dest_dir)
+        archive.extractall(dest_dir)  # noqa: S202
 
 
 def _relocate_extract_dir(dest_dir: Path, extract_dir: str) -> None:
@@ -104,7 +104,7 @@ def _extract_tar_from_bytes(data: bytes, dest_dir: Path) -> None:
             tf.extractall(dest_dir, filter="data")
         else:
             _validate_entry_paths([member.name for member in tf.getmembers()], dest_dir)
-            tf.extractall(dest_dir)
+            tf.extractall(dest_dir)  # noqa: S202
 
 
 def _parse_conda_patches(info_tar_zst_bytes: bytes) -> list[PatchEntry]:
