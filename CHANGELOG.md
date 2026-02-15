@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.6.0 (2026-02-15)
+
+### Features
+
+- Define per archive env and bin ([`5abb735`](https://github.com/cuinixam/poks/commit/5abb735e4ba64f179dc27d1dd09ab5569e4b21b9))
+
+### Documentation
+
+- Update readme with app filtering ([`f2b7229`](https://github.com/cuinixam/poks/commit/f2b7229316a05793ef89905fc882465f70f085dd))
+
 ## v0.5.0 (2026-02-15)
 
 ### Documentation
