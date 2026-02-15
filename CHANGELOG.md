@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.4.0 (2026-02-15)
+
+### Features
+
+- Add support for .conda files ([`3e2bee2`](https://github.com/cuinixam/poks/commit/3e2bee274b7316f20862667e8262d98f7f3d2f94))
+
 ## v0.3.0 (2026-02-14)
 
 ### Bug fixes
