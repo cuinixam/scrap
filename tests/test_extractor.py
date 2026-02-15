@@ -105,39 +105,11 @@ def test_extract_archive(tmp_path, label, creator):
     assert (dest / "hello.txt").read_text() == HELLO_CONTENT
 
 
-ARCHIVE_CREATORS_WITH_EXTRACT_DIR = [
-    ("zip", lambda p: _create_zip(p, top_dir="sdk-1.0")),
-    ("tar.gz", lambda p: _create_tar(p, "gz", ".tar.gz", top_dir="sdk-1.0")),
-    ("7z", lambda p: _create_7z(p, top_dir="sdk-1.0")),
-    ("conda", lambda p: _create_conda(p, top_dir="sdk-1.0")),
-]
-
-
-@pytest.mark.parametrize(
-    ("label", "creator"),
-    ARCHIVE_CREATORS_WITH_EXTRACT_DIR,
-    ids=[a[0] for a in ARCHIVE_CREATORS_WITH_EXTRACT_DIR],
-)
-def test_extract_dir_relocates_contents(tmp_path, label, creator):
-    archive = creator(tmp_path)
-    dest = tmp_path / "out"
-    extract_archive(archive, dest, extract_dir="sdk-1.0")
-    assert (dest / "hello.txt").read_text() == HELLO_CONTENT
-    assert not (dest / "sdk-1.0").exists()
-
-
 def test_unsupported_format_raises(tmp_path):
     fake = tmp_path / "archive.rar"
     fake.write_text("not real")
     with pytest.raises(ValueError, match="Unsupported archive format"):
         extract_archive(fake, tmp_path / "out")
-
-
-def test_extract_dir_missing_raises(tmp_path):
-    archive = _create_zip(tmp_path)
-    dest = tmp_path / "out"
-    with pytest.raises(ValueError, match="extract_dir 'nonexistent' not found"):
-        extract_archive(archive, dest, extract_dir="nonexistent")
 
 
 # -- path traversal protection -----------------------------------------------
@@ -175,13 +147,6 @@ def test_tar_path_traversal_rejected(tmp_path):
     _outside = getattr(tarfile, "OutsideDestinationError", ValueError)
     with pytest.raises((ValueError, _outside)):
         extract_archive(archive, dest)
-
-
-def test_extract_dir_traversal_rejected(tmp_path):
-    archive = _create_zip(tmp_path)
-    dest = tmp_path / "out"
-    with pytest.raises(ValueError, match="escapes destination directory"):
-        extract_archive(archive, dest, extract_dir="../../etc")
 
 
 # -- .conda-specific tests ---------------------------------------------------

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import io
 import json
-import shutil
 import tarfile
 import zipfile
 from collections.abc import Generator
@@ -79,18 +78,6 @@ def _extract_all(archive: Any, fmt: str, dest_dir: Path) -> None:
         archive.extractall(dest_dir)  # noqa: S202
 
 
-def _relocate_extract_dir(dest_dir: Path, extract_dir: str) -> None:
-    """Move contents of dest_dir/extract_dir into dest_dir."""
-    source = dest_dir / extract_dir
-    if not source.resolve().is_relative_to(dest_dir.resolve()):
-        raise ValueError(f"extract_dir '{extract_dir}' escapes destination directory")
-    if not source.is_dir():
-        raise ValueError(f"extract_dir '{extract_dir}' not found in extracted archive")
-    for item in source.iterdir():
-        shutil.move(str(item), str(dest_dir / item.name))
-    source.rmdir()
-
-
 def _decompress_zstd(data: bytes) -> bytes:
     """Decompress zstandard-compressed bytes."""
     dctx = zstandard.ZstdDecompressor()
@@ -150,7 +137,7 @@ def _extract_conda(archive_path: Path, dest_dir: Path) -> None:
         poke(dest_dir, patches)
 
 
-def extract_archive(archive_path: Path, dest_dir: Path, extract_dir: str | None = None) -> Path:
+def extract_archive(archive_path: Path, dest_dir: Path) -> Path:
     """Extract an archive into *dest_dir* and return *dest_dir*."""
     fmt = _detect_format(archive_path)
     dest_dir.mkdir(parents=True, exist_ok=True)
@@ -159,6 +146,4 @@ def extract_archive(archive_path: Path, dest_dir: Path, extract_dir: str | None 
     else:
         with _open_archive(archive_path, fmt) as archive:
             _extract_all(archive, fmt, dest_dir)
-    if extract_dir:
-        _relocate_extract_dir(dest_dir, extract_dir)
     return dest_dir

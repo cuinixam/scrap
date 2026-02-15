@@ -36,7 +36,6 @@
   - Inner `pkg-*.tar.zst` contents land in `dest_dir`
   - Prefix patching is applied based on `paths.json`
   - Path traversal in inner tar is rejected
-  - `extract_dir` relocation still works for `.conda`
 
 ## Step 4: Add `_create_conda` test helper
 
@@ -59,7 +58,6 @@
   - Windows backslash delimiter handling
 - **Tests for extractor**:
   - `.conda` extraction produces correct files
-  - `.conda` with `extract_dir` works
   - `.conda` with path traversal in inner tar is rejected
   - `.conda` with no `paths.json` extracts without poking
 - **AC**: All tests pass with `pypeline run`

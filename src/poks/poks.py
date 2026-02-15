@@ -124,16 +124,18 @@ class Poks:
                 progress_callback=self.progress_callback,
                 use_cache=self.use_cache,
             )
-            extract_archive(archive_path, install_dir, app_version.extract_dir)
+            extract_archive(archive_path, install_dir)
             (install_dir / ".manifest.json").write_text(manifest.to_json_string())
             self._create_receipt(install_dir, "", [])
             if not self.progress_callback:
                 logger.info(f"Installed {app_name}@{version}")
         else:
+            archive = resolve_archive(app_version, current_os, current_arch)
             if not self.progress_callback:
                 logger.info(f"Skipping {app_name}@{version}: already installed")
 
-        return self._build_installed_app(app_name, version, install_dir, app_version)
+        effective = app_version.resolve_for_archive(archive)
+        return self._build_installed_app(app_name, version, install_dir, effective)
 
     def _resolve_bucket(self, bucket_arg: str | None, app_name: str, registry: PoksBucketRegistry) -> PoksBucket:
         """Resolve the bucket logic for installation to avoid nesting."""
@@ -290,7 +292,7 @@ class Poks:
                 progress_callback=self.progress_callback,
                 use_cache=self.use_cache,
             )
-            extract_archive(archive_path, install_dir, app_version.extract_dir)
+            extract_archive(archive_path, install_dir)
 
             # Persist manifest and receipt for future reference
             (install_dir / ".manifest.json").write_text(manifest.to_json_string())
@@ -298,10 +300,12 @@ class Poks:
             if not self.progress_callback:
                 logger.info(f"Installed {app.name}@{app.version}")
         else:
+            archive = resolve_archive(app_version, current_os, current_arch)
             if not self.progress_callback:
                 logger.info(f"Skipping {app.name}@{app.version}: already installed")
 
-        return self._build_installed_app(app.name, app.version, install_dir, app_version)
+        effective = app_version.resolve_for_archive(archive)
+        return self._build_installed_app(app.name, app.version, install_dir, effective)
 
     def _create_receipt(self, install_dir: Path, bucket_ref: str, buckets_list: list[PoksBucket]) -> None:
         receipt: dict[str, str | None] = {"bucket_id": None, "bucket_name": None, "bucket_url": None}
@@ -355,7 +359,14 @@ class Poks:
                 logger.warning(f"Version {version} not found in stored manifest for {app_name}")
                 return InstalledApp(name=app_name, version=version, install_dir=version_dir, bin_dirs=[], env={})
 
-            return self._build_installed_app(app_name, version, version_dir, app_version)
+            current_os, current_arch = get_current_platform()
+            try:
+                archive = resolve_archive(app_version, current_os, current_arch)
+                effective = app_version.resolve_for_archive(archive)
+            except ValueError:
+                effective = app_version
+
+            return self._build_installed_app(app_name, version, version_dir, effective)
 
         except Exception as e:
             logger.warning(f"Failed to load manifest for {app_name}@{version}: {e}")

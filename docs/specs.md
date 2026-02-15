@@ -70,7 +70,6 @@ A JSON file describing an application. It supports multiple versions, each with 
                     "sha256": "..."
                 }
             ],
-            "extract_dir": "zephyr-sdk-0.16.5-1",
             "env": {
                 "ZEPHYR_SDK_INSTALL_DIR": "${dir}"
             }
@@ -86,7 +85,6 @@ A JSON file describing an application. It supports multiple versions, each with 
                     "sha256": "..."
                 }
             ],
-            "extract_dir": "zephyr-sdk-0.16.4",
             "env": {
                 "ZEPHYR_SDK_INSTALL_DIR": "${dir}"
             }
@@ -115,6 +113,8 @@ The `archives` field is a list where each element defines:
 - `ext`: The file extension (e.g., `.7z`, `.tar.gz`). Used for generic URL expansion. If omitted when `url` is specified, Poks auto-detects the format from the URL.
 - `url`: (Optional within archive) The direct download URL. Overrides the generic URL.
 - `sha256`: The SHA256 hash for verification.
+- `bin`: (Optional) Overrides the version-level `bin` directories for this archive.
+- `env`: (Optional) Overrides the version-level `env` variables for this archive.
 
 **Supported Platforms**:
 Poks iterates through the `archives` list to find a match for the current `(os, arch)`. If no match is found, the platform is unsupported.
@@ -257,12 +257,13 @@ class PoksArchive:
     sha256: str
     ext: Optional[str] = None  # Auto-detected from url if omitted
     url: Optional[str] = None
+    bin: list[str] | None = None  # Overrides version-level bin
+    env: dict[str, str] | None = None  # Merges with version-level env
 
 @dataclass
 class PoksAppVersion:
     version: str
     archives: list[PoksArchive]
-    extract_dir: str | None = None
     bin: list[str] | None = None
     env: dict[str, str] | None = None
     license: str | None = None

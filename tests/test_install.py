@@ -45,10 +45,12 @@ def _make_manifest(
     bin_dirs: list[str] | None = None,
     env_vars: dict[str, str] | None = None,
     archive_name: str = "archive",
+    archive_bin: list[str] | None = None,
+    archive_env: dict[str, str] | None = None,
 ) -> PoksManifest:
     """Create a test archive and return a matching manifest."""
     archive_files = files or {"bin/tool": "#!/bin/sh\necho hello"}
-    archive_path, sha256 = create_archive(archives_dir, archive_files, fmt=fmt, top_dir=archive_name)
+    archive_path, sha256 = create_archive(archives_dir, archive_files, fmt=fmt)
     ext = f".{fmt}"
     return PoksManifest(
         description=f"Test manifest for {archive_name}",
@@ -56,8 +58,16 @@ def _make_manifest(
             PoksAppVersion(
                 version=version,
                 url=archive_path.as_uri(),
-                archives=[PoksArchive(os=target_os, arch=target_arch, ext=ext, sha256=sha256)],
-                extract_dir=archive_name,
+                archives=[
+                    PoksArchive(
+                        os=target_os,
+                        arch=target_arch,
+                        ext=ext,
+                        sha256=sha256,
+                        bin=archive_bin,
+                        env=archive_env,
+                    )
+                ],
                 bin=bin_dirs,
                 env=env_vars,
             )
@@ -385,3 +395,26 @@ def test_install_from_manifest_version_not_found(
 
     with pytest.raises(ValueError, match=r"Version 9\.9\.9 not found"):
         poks.install_from_manifest(manifest_path, "9.9.9")
+
+
+def test_per_archive_bin_overrides_version(
+    install_env: tuple[Poks, Path, Path],
+) -> None:
+    poks, root_dir, archives_dir = install_env
+    manifest = _make_manifest(
+        archives_dir,
+        bin_dirs=["default-bin"],
+        env_vars={"TOOL_HOME": "${dir}"},
+        archive_bin=["custom-bin"],
+        archive_env={"EXTRA": "val"},
+    )
+    manifest_path = archives_dir / "custom-tool.json"
+    manifest_path.write_text(manifest.to_json_string())
+
+    with PLATFORM_PATCH:
+        installed = poks.install_from_manifest(manifest_path, "1.0.0")
+
+    assert installed.bin_dirs == [root_dir / "apps" / "custom-tool" / "1.0.0" / "custom-bin"]
+    # archive env fully replaces version env (consistent with bin override)
+    assert installed.env == {"EXTRA": "val"}
+    assert "TOOL_HOME" not in installed.env

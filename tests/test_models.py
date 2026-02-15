@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from poks.domain import PoksApp, PoksBucket, PoksConfig, PoksManifest
+from poks.domain import PoksApp, PoksAppVersion, PoksArchive, PoksBucket, PoksConfig, PoksManifest
 
 SAMPLE_MANIFEST = {
     "description": "Zephyr SDK Bundle",
@@ -16,7 +16,6 @@ SAMPLE_MANIFEST = {
                 {"os": "windows", "arch": "x86_64", "ext": ".7z", "sha256": "abc123"},
                 {"os": "linux", "arch": "x86_64", "sha256": "def456", "url": "https://mirror.example.com/sdk-linux.tar.xz"},
             ],
-            "extract_dir": "zephyr-sdk-0.16.5-1",
             "bin": ["bin"],
             "env": {"ZEPHYR_SDK_INSTALL_DIR": "${dir}"},
         }
@@ -148,3 +147,34 @@ def test_invalid_json(tmp_path):
     path.write_text("not valid json")
     with pytest.raises(json.JSONDecodeError):
         PoksConfig.from_json_file(path)
+
+
+class TestResolveForArchive:
+    def test_archive_overrides_bin(self):
+        version = PoksAppVersion(
+            version="1.0",
+            archives=[PoksArchive(os="linux", arch="x86_64", sha256="aaa", bin=["custom/bin"])],
+            bin=["default/bin"],
+        )
+        effective = version.resolve_for_archive(version.archives[0])
+        assert effective.bin == ["custom/bin"]
+
+    def test_env_archive_overrides_version(self):
+        version = PoksAppVersion(
+            version="1.0",
+            archives=[PoksArchive(os="linux", arch="x86_64", sha256="aaa", env={"KEY": "archive", "EXTRA": "new"})],
+            env={"KEY": "version", "HOME": "${dir}"},
+        )
+        effective = version.resolve_for_archive(version.archives[0])
+        assert effective.env == {"KEY": "archive", "EXTRA": "new"}
+
+    def test_no_overrides_inherits_defaults(self):
+        version = PoksAppVersion(
+            version="1.0",
+            archives=[PoksArchive(os="linux", arch="x86_64", sha256="aaa")],
+            bin=["bin"],
+            env={"HOME": "${dir}"},
+        )
+        effective = version.resolve_for_archive(version.archives[0])
+        assert effective.bin == ["bin"]
+        assert effective.env == {"HOME": "${dir}"}
