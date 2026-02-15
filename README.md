@@ -50,134 +50,93 @@ While Poks includes a CLI, its **main purpose is to be used programmatically** t
 
 ## Installation
 
-Install via pip (or your favorite package manager):
-
 ```bash
 pip install poks
 ```
 
-## Programmatic Usage
-
-Poks is designed to be easily integrated into your Python scripts.
-
-### Quick Start
-
-```python
-from pathlib import Path
-from poks.poks import Poks
-
-# Initialize Poks with a root directory for apps/cache
-poks = Poks(root_dir=Path("./.tools"))
-
-# Install a specific application
-# (Automatically searches configured buckets)
-poks.install_app("cmake@3.28.1")
-
-# Install from a configuration file (poks.json)
-poks.install(Path("poks.json"))
-
-# Uninstall
-poks.uninstall(app_name="cmake", version="3.28.1")
-```
-
-## CLI Usage
-
-You can also use Poks from the command line.
-
-### Installation (CLI)
-
-Install via pipx:
+For CLI-only usage:
 
 ```bash
 pipx install poks
 ```
 
-## Quick Start
+## Concepts
 
-Create a `poks.json` configuration file:
+- **App**: A tool or dependency you want to install (e.g., CMake, a compiler toolchain). Each app has a name and one or more versions.
+- **Manifest**: A JSON file that describes an app — its download URLs, checksums, and platform-specific archives. One manifest per app (e.g., `cmake.json`). See [examples/cmake.json](examples/cmake.json).
+- **Bucket**: A git repository containing a collection of manifests. Buckets are how manifests are shared and distributed.
+- **Config file**: A JSON file (`poks.json`) that ties it all together — it lists which buckets to use and which apps (with versions) to install from them. See [examples/poks.json](examples/poks.json).
 
-```json
-{
-    "buckets": [
-        {
-            "name": "main",
-            "url": "https://github.com/poks/main-bucket.git"
-        }
-    ],
-    "apps": [
-        {
-            "name": "cmake",
-            "version": "3.28.1",
-            "bucket": "main"
-        }
-    ]
-}
-```
+## Installing apps
 
-Install the defined tools:
+### From a config file
+
+Use a config file when you want to define a reproducible set of tools for a project. The config references one or more buckets and lists the apps to install from them.
 
 ```bash
-poks install -c poks.json
+poks install --config poks.json
 ```
 
-## CLI Reference
+### From a bucket
+
+Install a single app directly, without a config file. Poks looks up the app's manifest in the specified bucket.
 
 ```bash
-# Install tools from config file
-poks install -c poks.json
-
-# Install a specific tool
-poks install zephyr-sdk@0.16.5-1 --bucket main
-
-# Uninstall a specific version
-poks uninstall zephyr-sdk@0.16.5-1
-
-# Uninstall all versions of an app
-poks uninstall zephyr-sdk
-
-# Uninstall everything
-poks uninstall --all
+poks install --app cmake --version 3.28.1 --bucket main
+poks install --app cmake --version 3.28.1 --bucket https://github.com/poks/main-bucket.git
+poks install --app cmake --version 3.28.1   # searches all local buckets
 ```
 
-## Documentation
+### From a manifest file
 
-For detailed specifications and manifest format, see [docs/specs.md](docs/specs.md).
+Install directly from a local manifest file — no bucket needed. Useful for testing a manifest before publishing it to a bucket. The app name is derived from the filename.
+
+```bash
+poks install --manifest cmake.json --version 4.2.3
+```
+
+### Other commands
+
+```bash
+poks uninstall cmake@3.28.1       # specific version
+poks uninstall cmake              # all versions
+poks uninstall --all              # everything
+poks search cmake                 # search across local buckets
+poks list                         # list installed apps
+```
+
+## Python API
+
+Poks is designed to be used programmatically. See [examples/](examples/) for complete scripts.
+
+```python
+from pathlib import Path
+from poks.poks import Poks
+
+poks = Poks(root_dir=Path.home() / ".poks")
+
+poks.install(Path("poks.json"))                              # from config file
+poks.install_app("cmake", "3.28.1", bucket="main")           # from bucket
+poks.install_from_manifest(Path("cmake.json"), "3.28.1")     # from manifest file
+```
+
+## Manifest format
+
+For the manifest schema and detailed specifications, see [docs/specs.md](docs/specs.md).
 
 ## Contributing
 
-We welcome contributions! Please see our development guidelines below.
-
-### Setup and Development
-
 This project uses [pypeline](https://github.com/cuinixam/pypeline) for build automation and `uv` for dependency management.
 
-1. **Install Prerequisites**:
-    Ensure you have Python 3.10+ and `uv` installed.
-    pypeline will automatically use `uv` to create virtual environments.
+```bash
+# Install pypeline
+uv tool install pypeline-runner
 
-2. **Install Pypeline**:
+# Run full pipeline (lint + tests)
+pypeline run
+```
 
-    ```bash
-    uv tool install pypeline-runner
-    ```
-
-3. **Run the Pipeline**:
-    The pipeline handles environment setup, linting, and testing.
-
-    ```bash
-    # Run full pipeline (lint + tests)
-    pypeline run
-
-    # Run only linting (pre-commit hooks)
-    pypeline run --step PreCommit
-
-    # Run tests with specific Python version
-    pypeline run --step CreateVEnv --step PyTest --single --input python_version=3.13
-    ```
-
-### AI Agents
-
-For AI agents contributing to this project, please explicitly read and follow [AGENTS.md](AGENTS.md) for detailed instructions on workflows, coding standards, and verification steps.
+For AI agents, see [AGENTS.md](AGENTS.md).
 
 ## Credits
 

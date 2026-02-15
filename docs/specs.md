@@ -209,14 +209,22 @@ To install tools, the user defines a configuration file listing the *buckets* (w
 Python modules can interact with Poks programmatically.
 
 ```python
-from poks import Poks
+from pathlib import Path
+from poks.poks import Poks
 
 poks = Poks(root_dir=Path.home() / ".poks")
-# Install apps from config file
-env_updates = poks.install("path/to/poks.json")
 
-# env_updates contains modified PATH and other vars
-# e.g., {'PATH': '/home/user/.poks/apps/zephyr-sdk/0.16.5-1/bin:...', 'ZEPHYR_SDK_INSTALL_DIR': ...}
+# Install apps from config file
+result = poks.install(Path("poks.json"))
+
+# Install a single app from a bucket
+installed = poks.install_app("cmake", "3.28.1", bucket="main")
+
+# Install directly from a manifest file (no bucket needed)
+installed = poks.install_from_manifest(Path("cmake.json"), "3.28.1")
+
+# result.apps / installed contain resolved paths and environment variables
+# e.g., installed.install_dir, installed.bin_dirs, installed.env
 ```
 
 ## Specification
@@ -282,16 +290,25 @@ Poks intentionally does **not** have `update` or `clean` commands. Different pro
 
 ```bash
 # Install tools defined in poks.json
-poks install -c poks.json
+poks install --config poks.json
 
-# Install a specific tool (searches all local buckets)
-poks install zephyr-sdk@0.16.5-1
-
-# Install from a specific local bucket
-poks install zephyr-sdk@0.16.5-1 --bucket main
+# Install a specific tool from a bucket
+poks install --app zephyr-sdk --version 0.16.5-1 --bucket main
 
 # Install from a bucket URL (cloned on-the-fly)
-poks install zephyr-sdk@0.16.5-1 --bucket https://github.com/poks/main-bucket.git
+poks install --app zephyr-sdk --version 0.16.5-1 --bucket https://github.com/poks/main-bucket.git
+
+# Install searching all local buckets
+poks install --app zephyr-sdk --version 0.16.5-1
+
+# Install directly from a manifest file (no bucket needed)
+poks install --manifest zephyr-sdk.json --version 0.16.5-1
+
+# Search for apps across local buckets
+poks search zephyr
+
+# List installed apps
+poks list
 
 # Uninstall a specific version of an app
 poks uninstall zephyr-sdk@0.16.5-1
