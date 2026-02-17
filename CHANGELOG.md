@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.7.0 (2026-02-17)
+
+### Features
+
+- Add support to convert scoop manifests ([`c975104`](https://github.com/cuinixam/poks/commit/c97510417ef49260d74bd07e54a6dc4bc3f61b4f))
+- Add extract_dir support and rename bin to bin_dirs ([`6c357fb`](https://github.com/cuinixam/poks/commit/6c357fb9070aa24939212d6dffd854535161dcf0))
+
 ## v0.6.0 (2026-02-15)
 
 ### Features
