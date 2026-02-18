@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.8.0 (2026-02-18)
+
+### Features
+
+- Use requests for downloading ([`ac2e0ad`](https://github.com/cuinixam/poks/commit/ac2e0ad7765a5cd5ca89c2b107323477bb40c35d))
+
 ## v0.7.0 (2026-02-17)
 
 ### Features
