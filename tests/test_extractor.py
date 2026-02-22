@@ -136,6 +136,19 @@ def test_extract_dir_traversal_rejected(tmp_path):
         extract_archive(archive, dest, extract_dir="../escape")
 
 
+def test_extract_dir_with_same_name_child(tmp_path):
+    """Relocation must work when extract_dir contains a child with the same name."""
+    archive = tmp_path / "archive.tar.xz"
+    with tarfile.open(archive, "w:xz") as tf:
+        info = tarfile.TarInfo(name="toolchain/toolchain/hello.txt")
+        data = HELLO_CONTENT.encode()
+        info.size = len(data)
+        tf.addfile(info, BytesIO(data))
+    dest = tmp_path / "out"
+    extract_archive(archive, dest, extract_dir="toolchain")
+    assert (dest / "toolchain" / "hello.txt").read_text() == HELLO_CONTENT
+
+
 def test_unsupported_format_raises(tmp_path):
     fake = tmp_path / "archive.rar"
     fake.write_text("not real")

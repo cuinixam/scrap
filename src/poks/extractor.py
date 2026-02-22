@@ -105,15 +105,22 @@ def _extract_all(
 
 
 def _relocate_extract_dir(dest_dir: Path, extract_dir: str) -> None:
-    """Move contents of dest_dir/extract_dir into dest_dir."""
+    """
+    Move contents of dest_dir/extract_dir into dest_dir.
+
+    Uses a temporary rename to avoid conflicts when a child inside
+    extract_dir has the same name as extract_dir itself.
+    """
     source = dest_dir / extract_dir
     if not source.resolve().is_relative_to(dest_dir.resolve()):
         raise ValueError(f"extract_dir '{extract_dir}' escapes destination directory")
     if not source.is_dir():
         raise ValueError(f"extract_dir '{extract_dir}' not found in extracted archive")
-    for item in source.iterdir():
+    staging = dest_dir / f".poks_tmp_{extract_dir}"
+    source.rename(staging)
+    for item in staging.iterdir():
         shutil.move(str(item), str(dest_dir / item.name))
-    source.rmdir()
+    staging.rmdir()
 
 
 def _decompress_zstd(data: bytes) -> bytes:
