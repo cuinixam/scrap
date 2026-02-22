@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.9.0 (2026-02-22)
+
+### Features
+
+- Add unpack progress bar ([`f737ff7`](https://github.com/cuinixam/poks/commit/f737ff787831d76d004b55d52adb0d3c2e98562e))
+- Add default download progress bar ([`16aca23`](https://github.com/cuinixam/poks/commit/16aca23ff345933196d82564af778a08002611a1))
+
 ## v0.8.0 (2026-02-18)
 
 ### Features
