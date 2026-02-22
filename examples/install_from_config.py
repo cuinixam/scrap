@@ -12,7 +12,7 @@ result = poks.install(Path(__file__).parent / "poks.json")
 
 # Use the result to set up the environment
 for app in result.apps:
-    print(f"Installed {app.name}@{app.version} -> {app.install_dir}")
+    print(app.format_status())
     for bin_dir in app.bin_dirs:
         print(f"  PATH += {bin_dir}")
     for key, value in app.env.items():

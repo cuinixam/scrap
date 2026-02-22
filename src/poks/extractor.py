@@ -17,6 +17,7 @@ import zstandard
 from py_app_dev.core.exceptions import UserNotificationException
 
 from poks.poker import PatchEntry, poke
+from poks.progress import ProgressCallback
 
 SUPPORTED_FORMATS: dict[str, str] = {
     ".conda": "conda",
@@ -65,19 +66,42 @@ def _open_archive(archive_path: Path, fmt: str) -> Generator[Any, None, None]:
             yield tf
 
 
-def _extract_all(archive: Any, fmt: str, dest_dir: Path) -> None:
+def _extract_all(
+    archive: Any,
+    fmt: str,
+    dest_dir: Path,
+    progress_callback: ProgressCallback | None = None,
+    app_name: str = "",
+) -> None:
     """Extract all contents of an archive into dest_dir after validating paths."""
     if fmt == "zip":
+        members = archive.infolist()
         _validate_entry_paths(archive.namelist(), dest_dir)
-        archive.extractall(dest_dir)  # noqa: S202
+        total = len(members)
+        for idx, member in enumerate(members, 1):
+            archive.extract(member, dest_dir)
+            if progress_callback:
+                progress_callback(app_name, idx, total)
     elif fmt == "7z":
-        _validate_entry_paths(archive.getnames(), dest_dir)
+        names = archive.getnames()
+        _validate_entry_paths(names, dest_dir)
         archive.extractall(path=dest_dir)  # noqa: S202
-    elif hasattr(tarfile, "data_filter"):
-        archive.extractall(dest_dir, filter="data")
+        if progress_callback:
+            progress_callback(app_name, len(names), len(names))
     else:
-        _validate_entry_paths([member.name for member in archive.getmembers()], dest_dir)
-        archive.extractall(dest_dir)  # noqa: S202
+        members = archive.getmembers()
+        total = len(members)
+        if hasattr(tarfile, "data_filter"):
+            for idx, member in enumerate(members, 1):
+                archive.extract(member, dest_dir, filter="data")
+                if progress_callback:
+                    progress_callback(app_name, idx, total)
+        else:
+            _validate_entry_paths([m.name for m in members], dest_dir)
+            for idx, member in enumerate(members, 1):
+                archive.extract(member, dest_dir)
+                if progress_callback:
+                    progress_callback(app_name, idx, total)
 
 
 def _relocate_extract_dir(dest_dir: Path, extract_dir: str) -> None:
@@ -151,16 +175,24 @@ def _extract_conda(archive_path: Path, dest_dir: Path) -> None:
         poke(dest_dir, patches)
 
 
-def extract_archive(archive_path: Path, dest_dir: Path, extract_dir: str | None = None) -> Path:
+def extract_archive(
+    archive_path: Path,
+    dest_dir: Path,
+    extract_dir: str | None = None,
+    progress_callback: ProgressCallback | None = None,
+    app_name: str = "",
+) -> Path:
     """Extract an archive into *dest_dir* and return *dest_dir*."""
     fmt = _detect_format(archive_path)
     dest_dir.mkdir(parents=True, exist_ok=True)
     try:
         if fmt == "conda":
             _extract_conda(archive_path, dest_dir)
+            if progress_callback:
+                progress_callback(app_name, 1, 1)
         else:
             with _open_archive(archive_path, fmt) as archive:
-                _extract_all(archive, fmt, dest_dir)
+                _extract_all(archive, fmt, dest_dir, progress_callback, app_name)
     except py7zr.exceptions.UnsupportedCompressionMethodError as exc:
         raise UserNotificationException(f"Cannot extract '{archive_path.name}': {exc}. Try installing 7-Zip and extracting manually.") from exc
     if extract_dir:

@@ -198,6 +198,23 @@ class InstalledApp:
     bin_dirs: list[Path]
     #: Resolved environment variables (${dir} already expanded)
     env: dict[str, str]
+    #: True if the archive was downloaded (False if cache hit)
+    downloaded: bool = False
+    #: True if the archive was unpacked (False if already installed)
+    extracted: bool = False
+
+    @property
+    def status_label(self) -> str:
+        """User-friendly status description (e.g., 'downloaded & unpacked')."""
+        if self.downloaded and self.extracted:
+            return "downloaded & unpacked"
+        if self.extracted:
+            return "cache hit, unpacked"
+        return "already installed"
+
+    def format_status(self) -> str:
+        """Return the full formatted status string (e.g. '[cache hit] app@version -> dir')."""
+        return f"[{self.status_label}] {self.name}@{self.version} -> {self.install_dir}"
 
 
 @dataclass

@@ -32,7 +32,8 @@ class Poks:
     def __init__(
         self,
         root_dir: Path,
-        progress_callback: ProgressCallback | None = default_progress,
+        progress_callback: ProgressCallback | None = default_progress.on_download,
+        extract_callback: ProgressCallback | None = default_progress.on_extract,
         use_cache: bool = True,
     ) -> None:
         """
@@ -42,8 +43,12 @@ class Poks:
             root_dir: Root directory for Poks (apps, buckets, cache).
             progress_callback: Callback invoked during downloads
                 with ``(app_name, bytes_downloaded, total_bytes_or_none)``.
-                Defaults to a text-based progress reporter.
-                Pass ``None`` explicitly to disable progress output.
+                Defaults to a Rich progress bar.
+                Pass ``None`` explicitly to disable download progress.
+            extract_callback: Callback invoked during extraction
+                with ``(app_name, files_extracted, total_files)``.
+                Defaults to a Rich progress bar.
+                Pass ``None`` explicitly to disable extraction progress.
             use_cache: If False, skip the download cache and always re-download.
 
         """
@@ -52,6 +57,7 @@ class Poks:
         self.buckets_dir = root_dir / "buckets"
         self.cache_dir = root_dir / "cache"
         self.progress_callback = progress_callback
+        self.extract_callback = extract_callback
         self.use_cache = use_cache
 
     def install_app(self, app_name: str, version: str, bucket: str | None = None) -> InstalledApp:
@@ -120,7 +126,7 @@ class Poks:
             archive = resolve_archive(app_version, current_os, current_arch)
             effective = app_version.resolve_for_archive(archive)
             url = resolve_download_url(app_version, archive)
-            archive_path = get_cached_or_download(
+            download_result = get_cached_or_download(
                 url,
                 archive.sha256,
                 self.cache_dir,
@@ -128,14 +134,18 @@ class Poks:
                 progress_callback=self.progress_callback,
                 use_cache=self.use_cache,
             )
-            extract_archive(archive_path, install_dir, extract_dir=effective.extract_dir)
+            extract_archive(download_result.path, install_dir, extract_dir=effective.extract_dir, progress_callback=self.extract_callback, app_name=app_name)
             (install_dir / ".manifest.json").write_text(manifest.to_json_string())
             self._create_receipt(install_dir, "", [])
+            downloaded = download_result.downloaded
+            extracted = True
         else:
             archive = resolve_archive(app_version, current_os, current_arch)
             effective = app_version.resolve_for_archive(archive)
+            downloaded = False
+            extracted = False
 
-        return self._build_installed_app(app_name, version, install_dir, effective)
+        return self._build_installed_app(app_name, version, install_dir, effective, downloaded=downloaded, extracted=extracted)
 
     def _resolve_bucket(self, bucket_arg: str | None, app_name: str, registry: PoksBucketRegistry) -> PoksBucket:
         """Resolve the bucket logic for installation to avoid nesting."""
@@ -285,7 +295,7 @@ class Poks:
             archive = resolve_archive(app_version, current_os, current_arch)
             effective = app_version.resolve_for_archive(archive)
             url = resolve_download_url(app_version, archive)
-            archive_path = get_cached_or_download(
+            download_result = get_cached_or_download(
                 url,
                 archive.sha256,
                 self.cache_dir,
@@ -293,16 +303,20 @@ class Poks:
                 progress_callback=self.progress_callback,
                 use_cache=self.use_cache,
             )
-            extract_archive(archive_path, install_dir, extract_dir=effective.extract_dir)
+            extract_archive(download_result.path, install_dir, extract_dir=effective.extract_dir, progress_callback=self.extract_callback, app_name=app.name)
 
             # Persist manifest and receipt for future reference
             (install_dir / ".manifest.json").write_text(manifest.to_json_string())
             self._create_receipt(install_dir, app.bucket, buckets_list)
+            downloaded = download_result.downloaded
+            extracted = True
         else:
             archive = resolve_archive(app_version, current_os, current_arch)
             effective = app_version.resolve_for_archive(archive)
+            downloaded = False
+            extracted = False
 
-        return self._build_installed_app(app.name, app.version, install_dir, effective)
+        return self._build_installed_app(app.name, app.version, install_dir, effective, downloaded=downloaded, extracted=extracted)
 
     def _create_receipt(self, install_dir: Path, bucket_ref: str, buckets_list: list[PoksBucket]) -> None:
         receipt: dict[str, str | None] = {"bucket_id": None, "bucket_name": None, "bucket_url": None}
@@ -370,14 +384,29 @@ class Poks:
             return InstalledApp(name=app_name, version=version, install_dir=version_dir, bin_dirs=[], env={})
 
     @staticmethod
-    def _build_installed_app(name: str, version: str, install_dir: Path, app_version: PoksAppVersion) -> InstalledApp:
+    def _build_installed_app(
+        name: str,
+        version: str,
+        install_dir: Path,
+        app_version: PoksAppVersion,
+        downloaded: bool = False,
+        extracted: bool = False,
+    ) -> InstalledApp:
         bin_dirs = [install_dir / entry for entry in app_version.bin_dirs] if app_version.bin_dirs else []
         env: dict[str, str] = {}
         if app_version.env:
             dir_str = str(install_dir)
             for k, v in app_version.env.items():
                 env[k] = str(Path(v.replace("${dir}", dir_str)))
-        return InstalledApp(name=name, version=version, install_dir=install_dir, bin_dirs=bin_dirs, env=env)
+        return InstalledApp(
+            name=name,
+            version=version,
+            install_dir=install_dir,
+            bin_dirs=bin_dirs,
+            env=env,
+            downloaded=downloaded,
+            extracted=extracted,
+        )
 
     def uninstall(self, app_name: str | None = None, version: str | None = None, all_apps: bool = False, wipe: bool = False) -> None:
         """

@@ -87,7 +87,8 @@ def test_cached_file_reused(tmp_path: Path) -> None:
     with patch("poks.downloader.requests.get") as mock_dl:
         result = get_cached_or_download(url, SAMPLE_SHA256, cache_dir)
 
-    assert result == cached_file
+    assert result.path == cached_file
+    assert result.downloaded is False
     mock_dl.assert_not_called()
 
 
@@ -101,7 +102,8 @@ def test_corrupt_cache_redownloaded(tmp_path: Path) -> None:
     with patch("poks.downloader.requests.get", _mock_requests_get()):
         result = get_cached_or_download(url, SAMPLE_SHA256, cache_dir)
 
-    assert result == cached_file
+    assert result.path == cached_file
+    assert result.downloaded is True
     assert cached_file.read_bytes() == SAMPLE_CONTENT
 
 
@@ -112,8 +114,9 @@ def test_missing_cache_downloads(tmp_path: Path) -> None:
     with patch("poks.downloader.requests.get", _mock_requests_get()):
         result = get_cached_or_download(url, SAMPLE_SHA256, cache_dir)
 
-    assert result == _cache_path_for(url, cache_dir)
-    assert result.read_bytes() == SAMPLE_CONTENT
+    assert result.path == _cache_path_for(url, cache_dir)
+    assert result.downloaded is True
+    assert result.path.read_bytes() == SAMPLE_CONTENT
 
 
 # -- cache collision avoidance ------------------------------------------------

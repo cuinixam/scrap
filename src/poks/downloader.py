@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from dataclasses import dataclass
 from pathlib import Path
 from urllib.request import url2pathname
 
@@ -107,6 +108,14 @@ def _cache_path_for(url: str, cache_dir: Path) -> Path:
     return cache_dir / f"{url_hash}_{filename}"
 
 
+@dataclass
+class DownloadResult:
+    """Result of a download operation with cache status."""
+
+    path: Path
+    downloaded: bool
+
+
 def get_cached_or_download(
     url: str,
     sha256: str,
@@ -114,7 +123,7 @@ def get_cached_or_download(
     app_name: str = "",
     progress_callback: ProgressCallback | None = None,
     use_cache: bool = True,
-) -> Path:
+) -> DownloadResult:
     """
     Return a cached copy of the archive, downloading if necessary.
 
@@ -138,11 +147,11 @@ def get_cached_or_download(
         try:
             verify_sha256(cached, sha256)
             logger.info(f"Cache hit: {cached}")
-            return cached
+            return DownloadResult(path=cached, downloaded=False)
         except HashMismatchError:
             logger.warning(f"Corrupt cache entry {cached}, re-downloading")
             cached.unlink()
     cache_dir.mkdir(parents=True, exist_ok=True)
     download_file(url, cached, app_name=app_name, progress_callback=progress_callback)
     verify_sha256(cached, sha256)
-    return cached
+    return DownloadResult(path=cached, downloaded=True)

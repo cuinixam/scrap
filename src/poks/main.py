@@ -97,21 +97,18 @@ def install(
 
     try:
         if config_file:
-            poks.install(config_file)
+            result = poks.install(config_file)
+            for app in result.apps:
+                logger.info(app.format_status())
         elif manifest:
-            poks.install_from_manifest(manifest, version)  # type: ignore[arg-type]
+            app = poks.install_from_manifest(manifest, version)  # type: ignore[arg-type]
+            logger.info(app.format_status())
         elif app_name:
-            poks.install_app(app_name, version, bucket)  # type: ignore[arg-type]
+            app = poks.install_app(app_name, version, bucket)  # type: ignore[arg-type]
+            logger.info(app.format_status())
     except (ValueError, FileNotFoundError) as e:
         logger.error(str(e))
         raise typer.Exit(1) from e
-
-    if config_file:
-        logger.info("Installation complete.")
-    elif manifest:
-        logger.info(f"Successfully installed {manifest.stem}@{version}")
-    elif app_name:
-        logger.info(f"Successfully installed {app_name}@{version}")
 
 
 @app.command(help="Uninstall apps.")

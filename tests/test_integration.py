@@ -74,22 +74,26 @@ def test_download_verify_cache_flow(poks_env: PoksEnv) -> None:
     url = archive_path.as_uri()
 
     # First call: downloads and caches
-    cached = get_cached_or_download(url, sha256, poks_env.cache_dir)
+    result1 = get_cached_or_download(url, sha256, poks_env.cache_dir)
+    cached = result1.path
     assert cached.exists()
     assert cached.parent == poks_env.cache_dir
+    assert result1.downloaded is True
 
     original_mtime = cached.stat().st_mtime
 
     # Second call: reuses the cached file (no re-download)
-    cached_again = get_cached_or_download(url, sha256, poks_env.cache_dir)
-    assert cached_again == cached
-    assert cached_again.stat().st_mtime == original_mtime
+    result2 = get_cached_or_download(url, sha256, poks_env.cache_dir)
+    assert result2.path == cached
+    assert result2.path.stat().st_mtime == original_mtime
+    assert result2.downloaded is False
 
     # Corrupt the cache, next call should re-download
     cached.write_bytes(b"corrupt")
-    redownloaded = get_cached_or_download(url, sha256, poks_env.cache_dir)
-    assert redownloaded == cached
-    assert redownloaded.read_bytes() == archive_path.read_bytes()
+    result3 = get_cached_or_download(url, sha256, poks_env.cache_dir)
+    assert result3.path == cached
+    assert result3.downloaded is True
+    assert result3.path.read_bytes() == archive_path.read_bytes()
 
 
 def test_uninstall_specific_version(poks_env: PoksEnv) -> None:
