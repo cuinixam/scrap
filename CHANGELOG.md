@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.9.3 (2026-02-24)
+
+### Bug fixes
+
+- Trust store certificates are not used ([`b45ac46`](https://github.com/cuinixam/poks/commit/b45ac466254ef214c2c72f427defbd837907dc57))
+
 ## v0.9.2 (2026-02-22)
 
 ### Bug fixes
