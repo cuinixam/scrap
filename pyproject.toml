@@ -29,6 +29,7 @@ dependencies = [
   "gitpython>=3,<4",
   "zstandard>=0.20,<1",
   "requests>=2.32,<3",
+  "pip-system-certs>=5.0,<6",
 ]
 urls."Bug Tracker" = "https://github.com/cuinixam/poks/issues"
 urls.Changelog = "https://github.com/cuinixam/poks/blob/main/CHANGELOG.md"
