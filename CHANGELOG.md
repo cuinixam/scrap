@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.10.0 (2026-02-25)
+
+### Features
+
+- Add retries for unpacking apps with extract_dir ([`e05c77d`](https://github.com/cuinixam/poks/commit/e05c77dff8d9b3db4dee9d564ed55c4d4597de33))
+
 ## v0.9.4 (2026-02-25)
 
 ### Bug fixes
