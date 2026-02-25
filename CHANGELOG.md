@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.9.4 (2026-02-25)
+
+### Bug fixes
+
+- Update py7zr dependency to resolve version conflicts ([`36c103b`](https://github.com/cuinixam/poks/commit/36c103b24df96513f70ef89502a3face1e97f16c))
+
 ## v0.9.3 (2026-02-24)
 
 ### Bug fixes
