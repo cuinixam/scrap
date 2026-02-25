@@ -4,12 +4,13 @@ import zipfile
 from io import BytesIO
 from pathlib import Path
 from typing import Literal, cast
+from unittest.mock import patch
 
 import py7zr
 import pytest
 import zstandard
 
-from poks.extractor import extract_archive
+from poks.extractor import _rename_with_retry, extract_archive
 
 HELLO_CONTENT = "hello poks"
 NESTED_CONTENT = "nested file"
@@ -224,6 +225,40 @@ def test_extract_conda_no_paths_json(tmp_path):
     dest = tmp_path / "out"
     extract_archive(archive, dest)
     assert (dest / "hello.txt").read_text() == HELLO_CONTENT
+
+
+# -- _rename_with_retry tests -----------------------------------------------
+
+
+@pytest.mark.parametrize("fail_count", [0, 1, 4])
+def test_rename_with_retry_succeeds(tmp_path, fail_count):
+    src = tmp_path / "src"
+    src.mkdir()
+    dst = tmp_path / "dst"
+    calls = []
+    original_rename = Path.rename
+
+    def flaky_rename(self, target):
+        calls.append(target)
+        if len(calls) <= fail_count:
+            raise PermissionError("locked")
+        return original_rename(self, target)
+
+    with patch.object(Path, "rename", flaky_rename):
+        _rename_with_retry(src, dst, retries=5, delay_seconds=0)
+
+    assert dst.exists()
+    assert len(calls) == fail_count + 1
+
+
+def test_rename_with_retry_raises_after_exhausting_retries(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    dst = tmp_path / "dst"
+
+    with patch.object(Path, "rename", side_effect=PermissionError("always locked")):
+        with pytest.raises(PermissionError, match="always locked"):
+            _rename_with_retry(src, dst, retries=3, delay_seconds=0)
 
 
 def test_conda_path_traversal_in_inner_tar_rejected(tmp_path):

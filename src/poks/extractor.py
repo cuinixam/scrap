@@ -6,6 +6,7 @@ import io
 import json
 import shutil
 import tarfile
+import time
 import zipfile
 from collections.abc import Generator
 from contextlib import contextmanager
@@ -104,6 +105,19 @@ def _extract_all(
                     progress_callback(app_name, idx, total)
 
 
+def _rename_with_retry(src: Path, dst: Path, retries: int = 5, delay_seconds: float = 1.0) -> None:
+    """Rename *src* to *dst*, retrying on PermissionError (Windows file-lock race)."""
+    for attempt in range(retries):
+        try:
+            src.rename(dst)
+            return
+        except PermissionError:
+            if attempt < retries - 1:
+                time.sleep(delay_seconds)
+            else:
+                raise
+
+
 def _relocate_extract_dir(dest_dir: Path, extract_dir: str) -> None:
     """
     Move contents of dest_dir/extract_dir into dest_dir.
@@ -117,7 +131,7 @@ def _relocate_extract_dir(dest_dir: Path, extract_dir: str) -> None:
     if not source.is_dir():
         raise ValueError(f"extract_dir '{extract_dir}' not found in extracted archive")
     staging = dest_dir / f".poks_tmp_{extract_dir}"
-    source.rename(staging)
+    _rename_with_retry(source, staging)
     for item in staging.iterdir():
         shutil.move(str(item), str(dest_dir / item.name))
     staging.rmdir()
