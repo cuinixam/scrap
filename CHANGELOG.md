@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.10.1 (2026-02-26)
+
+### Bug fixes
+
+- Throws exception if app is not found to uninstall ([`6f4bf36`](https://github.com/cuinixam/poks/commit/6f4bf36174856e20d02d88ad90d159a1939b96e9))
+
 ## v0.10.0 (2026-02-25)
 
 ### Features
