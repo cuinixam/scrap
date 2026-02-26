@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 from git import Repo
 
 from poks.domain import PoksAppVersion, PoksArchive, PoksConfig, PoksManifest
@@ -157,16 +156,33 @@ def test_uninstall_all_apps(poks_env: PoksEnv) -> None:
     assert not any(poks_env.apps_dir.iterdir())
 
 
-def test_uninstall_nonexistent_app_raises_error(poks_env: PoksEnv) -> None:
-    with pytest.raises(ValueError, match=r"App nonexistent is not installed"):
-        poks_env.poks.uninstall("nonexistent")
+def test_uninstall_nonexistent_app_logs_warning(poks_env: PoksEnv) -> None:
+    poks_env.poks.uninstall("nonexistent")  # should not raise
 
 
-def test_uninstall_nonexistent_version_raises_error(poks_env: PoksEnv) -> None:
+def test_uninstall_nonexistent_version_logs_warning(poks_env: PoksEnv) -> None:
     app_dir = poks_env.apps_dir / "my-tool"
     version_dir = app_dir / "1.0.0"
     version_dir.mkdir(parents=True)
     (version_dir / "file.txt").write_text("data")
 
-    with pytest.raises(ValueError, match=r"App my-tool@2.0.0 is not installed"):
-        poks_env.poks.uninstall("my-tool", "2.0.0")
+    poks_env.poks.uninstall("my-tool", "2.0.0")  # should not raise
+
+    assert version_dir.exists()  # existing version untouched
+
+
+def test_uninstall_nonexistent_app_wipe_still_removes_cache(poks_env: PoksEnv) -> None:
+    assert poks_env.cache_dir.exists()
+    poks_env.poks.uninstall("nonexistent", wipe=True)
+    assert not poks_env.cache_dir.exists()
+
+
+def test_uninstall_nonexistent_version_wipe_still_removes_cache(poks_env: PoksEnv) -> None:
+    app_dir = poks_env.apps_dir / "my-tool"
+    version_dir = app_dir / "1.0.0"
+    version_dir.mkdir(parents=True)
+    (version_dir / "file.txt").write_text("data")
+
+    assert poks_env.cache_dir.exists()
+    poks_env.poks.uninstall("my-tool", "2.0.0", wipe=True)
+    assert not poks_env.cache_dir.exists()

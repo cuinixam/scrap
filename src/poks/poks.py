@@ -423,9 +423,6 @@ class Poks:
             all_apps: If True, uninstalls all apps.
             wipe: If True, also remove the download cache.
 
-        Raises:
-            ValueError: If the specified app or version does not exist.
-
         """
         if all_apps:
             logger.info("Uninstalling all apps")
@@ -449,19 +446,21 @@ class Poks:
         if version:
             version_dir = app_dir / version
             if not version_dir.exists():
-                raise ValueError(f"App {app_name}@{version} is not installed")
-            logger.info(f"Uninstalling {app_name}@{version}")
-            shutil.rmtree(version_dir)
-            logger.info(f"Removed {app_name}@{version}")
-            if app_dir.exists() and not any(app_dir.iterdir()):
-                app_dir.rmdir()
-                logger.info(f"Removed empty directory {app_name}")
+                logger.warning(f"App {app_name}@{version} is not installed")
+            else:
+                logger.info(f"Uninstalling {app_name}@{version}")
+                shutil.rmtree(version_dir)
+                logger.info(f"Removed {app_name}@{version}")
+                if app_dir.exists() and not any(app_dir.iterdir()):
+                    app_dir.rmdir()
+                    logger.info(f"Removed empty directory {app_name}")
         else:
             if not app_dir.exists():
-                raise ValueError(f"App {app_name} is not installed")
-            logger.info(f"Uninstalling all versions of {app_name}")
-            shutil.rmtree(app_dir)
-            logger.info(f"Removed {app_name}")
+                logger.warning(f"App {app_name} is not installed")
+            else:
+                logger.info(f"Uninstalling all versions of {app_name}")
+                shutil.rmtree(app_dir)
+                logger.info(f"Removed {app_name}")
 
         if wipe and self.cache_dir.exists():
             shutil.rmtree(self.cache_dir)
